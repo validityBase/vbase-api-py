@@ -165,9 +165,9 @@ class VBaseAPIClient:
     def create_collection(
         self,
         name: str,
-        cid: str,
         description: str,
-        is_pinned: bool
+        cid: str = None,
+        is_pinned: bool = True
     ) -> Collection:
         """
         Create a new user collection.
