@@ -232,7 +232,7 @@ The client returns typed response objects for easy data access:
 
 - **`Collection`**: Collection information
   - `id`, `name`, `cid`, `description`
-  - `is_pinned`, `is_public`, `is_portfolio`
+  - `is_pinned`, `is_public`
   - `created_at`
 
 - **`AccountSettings`**: User account details

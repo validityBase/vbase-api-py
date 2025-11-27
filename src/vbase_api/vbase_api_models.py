@@ -19,8 +19,6 @@ class Collection:
         name: Collection name
         cid: Collection CID
         is_pinned: Whether the collection is pinned
-        is_portfolio: Whether this is a portfolio
-        is_portfolio_collection: Whether this is a portfolio collection
         is_public: Whether the collection is public
         created_at: Creation timestamp
         description: Collection description
