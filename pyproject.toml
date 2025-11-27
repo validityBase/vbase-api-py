@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vbase-api"          # This is the name on PyPI
-version = "0.1.8"            # Must match __version__ above for now
+version = "0.1.9"            # Must match __version__ above for now
 description = "vBase REST API Python Client"
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
-  "requests>=2.32.5"
+  "requests>=2.7.0"
 ]
 license = "Apache-2.0"
 authors = [

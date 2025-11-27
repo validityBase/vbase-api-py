@@ -1,0 +1,16 @@
+name: Update the Main Docs Repository
+
+on:
+  push:
+    branches:
+      - main
+jobs:
+  update-main-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Publish Documents
+        uses: validityBase/docs/publish-docs-action@main
+        with:
+          docs-repo-access-token: ${{ secrets.DOCS_REPO_ACCESS_TOKEN }}
