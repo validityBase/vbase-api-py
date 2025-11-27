@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: testpypi
-      url: https://test.pypi.org/p/vbase-api-py
+      url: https://test.pypi.org/p/vbase-api
     permissions:
       id-token: write  # IMPORTANT: mandatory for trusted publishing
 
