@@ -29,8 +29,6 @@ class Collection:
     name: str
     cid: str
     is_pinned: bool
-    is_portfolio: bool
-    is_portfolio_collection: bool
     is_public: bool
     created_at: str
     description: str
@@ -43,8 +41,6 @@ class Collection:
             name=data['name'],
             cid=data['cid'],
             is_pinned=data['is_pinned'],
-            is_portfolio=data['is_portfolio'],
-            is_portfolio_collection=data['is_portfolio_collection'],
             is_public=data['is_public'],
             created_at=data['created_at'],
             description=data['description']
