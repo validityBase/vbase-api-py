@@ -243,7 +243,7 @@ The client returns typed response objects for easy data access:
 ## Complete Example
 
 ```python
-from vbase_api_py import VBaseAPIClient, VBaseAPIError
+from vbase_api import VBaseAPIClient, VBaseAPIError
 
 def main():
     # Initialize client
@@ -293,4 +293,5 @@ def main():
 if __name__ == "__main__":
     main()
 ```
+
 
