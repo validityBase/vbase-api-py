@@ -11,7 +11,7 @@ See [documentation](https://docs.vbase.com/) and the [Swagger UI](https://app.vb
 Install the package using pip:
 
 ```bash
-pip install vbase-api-py
+pip install vbase-api
 ```
 
 ## Quick Start
@@ -293,3 +293,4 @@ def main():
 if __name__ == "__main__":
     main()
 ```
+
