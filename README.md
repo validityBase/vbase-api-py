@@ -30,7 +30,7 @@ With vBase, creating and consuming provably correct data is as easy as pressing 
 Install the package using pip:
 
 ```bash
-pip install vbase-api-py
+pip install vbase-api
 ```
 
 ## Quick Start
@@ -42,7 +42,7 @@ To use the vBase API, you'll need an API key (Bearer token). You can obtain this
 ### Basic Usage
 
 ```python
-from vbase_api_py import VBaseAPIClient
+from vbase_api import VBaseAPIClient
 
 # Initialize the client
 client = VBaseAPIClient(api_key="your-bearer-token")
@@ -64,7 +64,7 @@ for collection in collections:
 The `VBaseAPIClient` can be initialized with your API key:
 
 ```python
-from vbase_api_py import VBaseAPIClient
+from vbase_api import VBaseAPIClient
 
 # Basic initialization
 client = VBaseAPIClient(api_key="your-bearer-token")
@@ -262,7 +262,7 @@ The client returns typed response objects for easy data access:
 ## Complete Example
 
 ```python
-from vbase_api_py import VBaseAPIClient, VBaseAPIError
+from vbase_api import VBaseAPIClient, VBaseAPIError
 
 def main():
     # Initialize client
@@ -312,3 +312,4 @@ def main():
 if __name__ == "__main__":
     main()
 ```
+
