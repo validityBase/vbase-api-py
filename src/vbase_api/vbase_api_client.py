@@ -13,6 +13,7 @@ import requests
 from pathlib import Path
 from typing import Dict, List, Optional, Any, BinaryIO, Union
 
+from ._version import __version__
 from .vbase_api_models import (
     Collection,
     StampCreatedResponse,
@@ -69,6 +70,7 @@ class VBaseAPIClient:
         self.session = requests.Session()
         self.session.headers.update({
             'Authorization': f'Bearer {api_key}',
+            'User-Agent': f'vBase API Python Client v{__version__}',
         })
 
     def _get_url(self, endpoint: str) -> str:

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vbase-api"          # This is the name on PyPI
-version = "0.1.1"            # Must match __version__ above for now
+dynamic = ["version"]
 description = "vBase REST API Python Client"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -31,6 +31,8 @@ Documentation = "https://docs.vbase.com/"
 package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
-
 where = ["src"]
+
+[tool.setuptools.dynamic]
+version = {attr = "vbase_api._version.__version__"}
 
