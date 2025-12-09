@@ -25,8 +25,9 @@ jobs:
           sed -i 's/vbase_api\.vbase_api_client\.VBaseAPIClient/vbase_api\.VBaseAPIClient/g' docs/_build/markdown/vbase_api_client.md
       - name: Copy generated markdown to docs
         run: |
-          cp docs/_build/markdown/vbase_api_client.md docs/
+          cp docs/_build/markdown/vbase_api_client.md docs_generated/
       - name: Publish Documents
         uses: validityBase/docs/publish-docs-action@main
         with:
+          source-docs-path: docs_generated
           docs-repo-access-token: ${{ secrets.DOCS_REPO_ACCESS_TOKEN }}
