@@ -10,6 +10,22 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Build markdown docs
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Generate vbase_api_client.md
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install .
+          python -m pip install sphinx sphinx-markdown-builder
+          sphinx-build -b markdown docs/ docs/_build/markdown
+      - name: Replace client reference in markdown
+        run: |
+          sed -i 's/vbase_api\.vbase_api_client\.VBaseAPIClient/vbase_api\.VBaseAPIClient/g' docs/_build/markdown/vbase_api_client.md
+      - name: Copy generated markdown to docs
+        run: |
+          cp docs/_build/markdown/vbase_api_client.md docs/
       - name: Publish Documents
         uses: validityBase/docs/publish-docs-action@main
         with:

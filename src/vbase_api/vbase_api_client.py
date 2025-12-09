@@ -49,9 +49,9 @@ class VBaseAPIClient:
         timeout: Request timeout in seconds (default: 30)
 
     Example:
-        >>> client = VBaseAPIClient(api_key="your-bearer-token")
-        >>> collections = client.list_collections()
-        >>> stamp = client.create_stamp(data={"hello": "world"})
+        client = VBaseAPIClient(api_key="your-bearer-token")
+        collections = client.list_collections()
+        stamp = client.create_stamp(data={"hello": "world"})
     """
 
     DEFAULT_BASE_URL = "https://app.vbase.com"
@@ -146,9 +146,11 @@ class VBaseAPIClient:
             VBaseAPIError: If the request fails
 
         Example:
-            >>> collections = client.get_collections(is_pinned=True)
-            >>> for collection in collections:
-            ...     print(f"{collection.name}: {collection.cid}")
+            .. code-block:: python
+
+                collections = client.get_collections(is_pinned=True)
+                for collection in collections:
+                    print(f"{collection.name}: {collection.cid}")
         """
         params = {}
         if user_address is not None:
@@ -187,13 +189,15 @@ class VBaseAPIClient:
             VBaseAPIError: If the request fails or collection already exists
 
         Example:
-            >>> collection = client.create_collection(
-            ...     name="My Collection",
-            ...     cid="0x1234567890abcdef...",
-            ...     description="A sample collection",
-            ...     is_pinned=True
-            ... )
-            >>> print(f"Created: {collection.name}")
+            .. code-block:: python
+
+                collection = client.create_collection(
+                    name="My Collection",
+                    cid="0x1234567890abcdef...",
+                    description="A sample collection",
+                    is_pinned=True
+                )
+                print(f"Created: {collection.name}")
         """
         data = {
             'name': name,
@@ -252,17 +256,19 @@ class VBaseAPIClient:
             ValueError: If invalid parameters are provided
         
         Example:
-            >>> # Stamp inline data
-            >>> stamp = client.create_stamp(data={"hello": "world"})
-            >>> print(f"Object CID: {stamp.commitment_receipt.object_cid}")
-            
-            >>> # Stamp a file
-            >>> stamp = client.create_stamp(file="document.pdf", collection_name="Documents")
-            >>> if stamp.file_object:
-            ...     print(f"File: {stamp.file_object.file_name}")
-            
-            >>> # Stamp an existing CID
-            >>> stamp = client.create_stamp(data_cid="Qm...")
+            .. code-block:: python
+
+                # Stamp inline data
+                stamp = client.create_stamp(data={"hello": "world"})
+                print(f"Object CID: {stamp.commitment_receipt.object_cid}")
+
+                # Stamp a file
+                stamp = client.create_stamp(file="document.pdf", collection_name="Documents")
+                if stamp.file_object:
+                    print(f"File: {stamp.file_object.file_name}")
+
+                # Stamp an existing CID
+                stamp = client.create_stamp(data_cid="Qm...")
         """
         if not any([file, data, data_cid]):
             raise ValueError("At least one of 'file', 'data', or 'data_cid' must be provided")
@@ -337,11 +343,13 @@ class VBaseAPIClient:
             VBaseAPIError: If validation fails or file not found in blockchain
 
         Example:
-            >>> result = client.upload_stamped_file(
-            ...     collection_name="My Collection",
-            ...     file="stamped_document.pdf"
-            ... )
-            >>> print(f"Uploaded: {result.file_object.file_name}")
+            .. code-block:: python
+
+                result = client.upload_stamped_file(
+                    collection_name="My Collection",
+                    file="stamped_document.pdf"
+                )
+                print(f"Uploaded: {result.file_object.file_name}")
         """
         form_data = {
             'collection_name': collection_name
@@ -386,12 +394,14 @@ class VBaseAPIClient:
             VBaseAPIError: If the request fails
 
         Example:
-            >>> result = client.verify_stamps(
-            ...     cids=["0xbd...1", "0xcd...2"],
-            ...     filter_by_user=True
-            ... )
-            >>> for stamp in result.stamp_list:
-            ...     print(f"Found stamp at {stamp.timestamp}")
+            .. code-block:: python
+
+                result = client.verify_stamps(
+                    cids=["0xbd...1", "0xcd...2"],
+                    filter_by_user=True
+                )
+                for stamp in result.stamp_list:
+                    print(f"Found stamp at {stamp.timestamp}")
         """
         data = {
             'cids': cids,
@@ -421,8 +431,8 @@ class VBaseAPIClient:
             VBaseAPIError: If the request fails
 
         Example:
-            >>> user = client.get_current_user()
-            >>> print(f"User email: {user.email}")
+            user = client.get_current_user()
+            print(f"User email: {user.email}")
         """
         response = self.session.get(
             self._get_url('users/me'),
@@ -445,8 +455,8 @@ class VBaseAPIClient:
             VBaseAPIError: If the request fails or user not found
         
         Example:
-            >>> user = client.get_user("0x...")
-            >>> print(f"User name: {user.name}")
+            user = client.get_user("0x...")
+            print(f"User name: {user.name}")
         """
         response = self.session.get(
             self._get_url(f'users/{user_address}'),
@@ -486,7 +496,9 @@ def create_client(
         Configured VBaseAPIClient instance
 
     Example:
-        >>> client = create_client(api_key="your-bearer-token")
-        >>> collections = client.get_collections()
+        .. code-block:: python
+
+            client = create_client(api_key="your-bearer-token")
+            collections = client.get_collections()
     """
     return VBaseAPIClient(api_key=api_key, base_url=base_url, timeout=timeout)
