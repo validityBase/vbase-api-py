@@ -28,7 +28,7 @@ jobs:
           mkdir -p docs_generated
       - name: Copy generated markdown to docs
         run: |
-          cp docs/_build/markdown/vbase_api_client.md docs_generated/
+          cp docs/_build/markdown/*.md docs_generated/
       - name: Publish Documents
         uses: validityBase/docs/publish-docs-action@main
         with:

@@ -6,3 +6,4 @@ vBase API Python Client Documentation
    :caption: API Client
 
    vbase_api_client
+   vbase_api_models
