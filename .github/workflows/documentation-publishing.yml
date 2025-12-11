@@ -23,6 +23,7 @@ jobs:
       - name: Replace client reference in markdown
         run: |
           sed -i 's/vbase_api\.vbase_api_client\.VBaseAPIClient/vbase_api\.VBaseAPIClient/g' docs/_build/markdown/vbase_api_client.md
+          sed -i 's/vbase_api\.vbase_api_models/vbase_api/g' docs/_build/markdown/vbase_api_models.md
       - name: Ensure docs_generated directory
         run: |
           mkdir -p docs_generated
