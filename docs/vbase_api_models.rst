@@ -1,4 +1,4 @@
-vbase_api_models module
+vBase API models
 =======================
 
 .. automodule:: vbase_api.vbase_api_models
