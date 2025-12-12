@@ -49,9 +49,11 @@ class VBaseAPIClient:
         timeout: Request timeout in seconds (default: 30)
 
     Example:
-        client = VBaseAPIClient(api_key="your-bearer-token")
-        collections = client.list_collections()
-        stamp = client.create_stamp(data={"hello": "world"})
+        .. code-block:: python
+
+            client = VBaseAPIClient(api_key="your-bearer-token")
+            collections = client.list_collections()
+            stamp = client.create_stamp(data={"hello": "world"})
     """
 
     DEFAULT_BASE_URL = "https://app.vbase.com"
