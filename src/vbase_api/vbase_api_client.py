@@ -433,8 +433,10 @@ class VBaseAPIClient:
             VBaseAPIError: If the request fails
 
         Example:
-            user = client.get_current_user()
-            print(f"User email: {user.email}")
+            .. code-block:: python
+
+                user = client.get_current_user()
+                print(f"User email: {user.email}")
         """
         response = self.session.get(
             self._get_url('users/me'),
@@ -457,8 +459,10 @@ class VBaseAPIClient:
             VBaseAPIError: If the request fails or user not found
         
         Example:
-            user = client.get_user("0x...")
-            print(f"User name: {user.name}")
+            .. code-block:: python
+
+                user = client.get_user("0x...")
+                print(f"User name: {user.name}")
         """
         response = self.session.get(
             self._get_url(f'users/{user_address}'),
