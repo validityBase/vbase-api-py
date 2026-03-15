@@ -1,4 +1,4 @@
-# vbase-py
+# vbase-api-py
 
 vBase REST API Python Client
 
