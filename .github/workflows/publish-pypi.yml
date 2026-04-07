@@ -7,6 +7,8 @@ on:
 
 permissions:
   contents: read
+  # upload-artifact and actions/cache save need Actions API write when permissions are explicit
+  actions: write
 
 jobs:
   build:

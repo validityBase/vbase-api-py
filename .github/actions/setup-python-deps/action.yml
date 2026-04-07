@@ -6,7 +6,7 @@ description: >
   pythonLocation) and hash pyproject.toml plus docs/conf.py when present.
 inputs:
   mode:
-    description: Use "build" for PyPI packaging deps or "docs" for editable install plus Sphinx.
+    description: Use "build" for PyPI packaging deps or "docs" to install the project plus Sphinx.
     required: true
 runs:
   using: composite
@@ -15,7 +15,7 @@ runs:
       id: python-version
       shell: bash
       run: |
-        echo "version=$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" >> "$GITHUB_OUTPUT"
+        echo "version=$(python -c 'import sys; print("{}.{}".format(sys.version_info.major, sys.version_info.minor))')" >> "$GITHUB_OUTPUT"
 
     - name: Cache pip
       uses: actions/cache@v5
