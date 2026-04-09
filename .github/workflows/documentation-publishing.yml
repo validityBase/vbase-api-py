@@ -15,10 +15,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        # v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        # v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
           python-version: "3.x"
 
@@ -45,7 +47,8 @@ jobs:
           cp docs/_build/markdown/*.md docs_generated/
 
       - name: Publish Documents
-        uses: validityBase/docs/publish-docs-action@main
+        # main @ validityBase/docs
+        uses: validityBase/docs/publish-docs-action@dae3fa92603ea55c2081dcb6d15aa0ad1a6355cd
         with:
           source-docs-path: docs_generated
           docs-repo-access-token: ${{ secrets.DOCS_REPO_ACCESS_TOKEN }}

@@ -15,10 +15,11 @@ runs:
       id: python-version
       shell: bash
       run: |
-        echo "version=$(python -c 'import sys; print("{}.{}".format(sys.version_info.major, sys.version_info.minor))')" >> "$GITHUB_OUTPUT"
+        echo "version=$(python -c 'import sys; print(sys.version_info[0], sys.version_info[1], sep=".")')" >> "$GITHUB_OUTPUT"
 
     - name: Cache pip
-      uses: actions/cache@v5
+      # v5
+      uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ steps.python-version.outputs.version }}-${{ hashFiles('pyproject.toml', 'docs/conf.py') }}-v2
