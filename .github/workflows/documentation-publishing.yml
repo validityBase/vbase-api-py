@@ -4,34 +4,51 @@ on:
   push:
     branches:
       - main
+
+permissions:
+  contents: read
+  # setup-python-deps uses actions/cache; save/restore need Actions API access when permissions are explicit
+  actions: write
+
 jobs:
   update-main-docs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-      - name: Build markdown docs
-        uses: actions/setup-python@v5
+        # v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+
+      - name: Set up Python
+        # v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
-          python-version: '3.x'
+          python-version: "3.x"
+
+      - name: Install dependencies and tooling
+        uses: ./.github/actions/setup-python-deps
+        with:
+          mode: docs
+
       - name: Generate vbase_api_client.md
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install .
-          python -m pip install sphinx sphinx-markdown-builder
           sphinx-build -b markdown docs/ docs/_build/markdown
+
       - name: Replace client reference in markdown
         run: |
           sed -i 's/vbase_api\.vbase_api_client\.VBaseAPIClient/vbase_api\.VBaseAPIClient/g' docs/_build/markdown/vbase_api_client.md
           sed -i 's/vbase_api\.vbase_api_models/vbase_api/g' docs/_build/markdown/vbase_api_models.md
+
       - name: Ensure docs_generated directory
         run: |
           mkdir -p docs_generated
+
       - name: Copy generated markdown to docs
         run: |
           cp docs/_build/markdown/*.md docs_generated/
+
       - name: Publish Documents
-        uses: validityBase/docs/publish-docs-action@main
+        # main @ validityBase/docs
+        uses: validityBase/docs/publish-docs-action@dae3fa92603ea55c2081dcb6d15aa0ad1a6355cd
         with:
           source-docs-path: docs_generated
           docs-repo-access-token: ${{ secrets.DOCS_REPO_ACCESS_TOKEN }}
