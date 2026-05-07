@@ -1,6 +1,7 @@
 name: Update the Main Docs Repository
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -47,8 +48,8 @@ jobs:
           cp docs/_build/markdown/*.md docs_generated/
 
       - name: Publish Documents
-        # main @ validityBase/docs
-        uses: validityBase/docs/publish-docs-action@dae3fa92603ea55c2081dcb6d15aa0ad1a6355cd
+        uses: validityBase/vbase-github-actions/.github/actions/publish-docs@v1
         with:
           source-docs-path: docs_generated
+          target-repository-branch: main
           docs-repo-access-token: ${{ secrets.DOCS_REPO_ACCESS_TOKEN }}
