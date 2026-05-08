@@ -1,8 +1,8 @@
 # AGENTS.md
 
 ## Setup
-- GitHub Actions notes: [specs/github-actions.md](specs/github-actions.md)
-- Persistent agent memory: [agents/memory/](agents/memory/)
+- GitHub Actions notes: [internal/specs/github-actions.md](internal/specs/github-actions.md)
+- Persistent agent memory: [internal/agents/memory/](internal/agents/memory/)
 
 ## Workflow
 When making code, packaging, or CI changes in this repo:
