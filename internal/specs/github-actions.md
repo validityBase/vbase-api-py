@@ -32,6 +32,7 @@ Do not restore a local `.github/actions/setup-python-deps` copy. Use `validityBa
 
 ### `.github/workflows/publish-pypi.yml`
 - Runs on published GitHub releases and manual dispatch.
+- Sets up Python 3.12 for reproducible release builds and CI parity.
 - Installs `build` and `twine`, builds Python package distributions, and checks them with `twine`.
 - Uploads the distribution artifact from the build job.
 - Publishes to PyPI through trusted publishing with OIDC.
