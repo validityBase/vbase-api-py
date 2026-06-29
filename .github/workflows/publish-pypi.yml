@@ -7,7 +7,7 @@ on:
 
 permissions:
   contents: read
-  # upload-artifact and actions/cache save need Actions API write when permissions are explicit
+  # upload-artifact needs Actions API write when permissions are explicit
   actions: write
 
 jobs:
@@ -26,12 +26,13 @@ jobs:
           python-version: "3.x"
 
       - name: Install build dependencies
-        uses: ./.github/actions/setup-python-deps
-        with:
-          mode: build
+        run: python -m pip install --upgrade build twine
 
       - name: Build package
         run: python -m build
+
+      - name: Check distributions
+        run: python -m twine check dist/*
 
       - name: Store the distribution packages
         # v6
