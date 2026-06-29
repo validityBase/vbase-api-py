@@ -69,4 +69,5 @@ pip-compile --strip-extras --no-annotate --allow-unsafe --generate-hashes -o req
 requests, pushes to `main`, and manual runs. It installs the minimal
 lock-generation tooling lock with `require-hashes: "true"`, regenerates
 terminal environment lock files, fails if generated files differ from committed
-files, installs the docs lock, and builds generated Markdown docs.
+files, installs the docs lock, and checks the installed dependency environment
+with `python -m pip check`.

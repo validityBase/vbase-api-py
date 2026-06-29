@@ -20,7 +20,7 @@ Do not restore a local `.github/actions/setup-python-deps` copy. Use `validityBa
 - Runs on pull requests, pushes to `main`, and manual `workflow_dispatch`.
 - Installs `requirements/lock/tools.txt` through `setup-python-deps@v1` with Python 3.12 and `require-hashes: "true"`.
 - Regenerates `requirements/lock/docs.txt` and `requirements/lock/tools.txt`; the workflow fails if committed lock files differ.
-- Installs `requirements/lock/docs.txt` and builds generated Sphinx Markdown docs.
+- Installs `requirements/lock/docs.txt` and checks installed dependency consistency with `python -m pip check`.
 
 ### `.github/workflows/documentation-publishing.yml`
 - Runs on pushes to `main` and manual dispatch.
