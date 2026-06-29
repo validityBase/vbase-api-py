@@ -17,7 +17,8 @@ CI install environment.
 
 - `requirements.in` is the human-edited published runtime dependency source.
   It is read by `pyproject.toml` and must use dependency ranges rather than
-  hash-locked pins.
+  hash-locked pins. It is included in source distributions through
+  `MANIFEST.in` so dynamic package metadata can be resolved during builds.
 - `requirements/src/docs.in` is the human-edited documentation publishing input.
 - `requirements/lock/docs.txt` is generated from `requirements/src/docs.in` and
   includes package runtime and documentation build dependencies with hashes.
