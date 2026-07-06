@@ -1,0 +1,45 @@
+name: Python Dependency Locks
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-locks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        # v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+
+      - name: Install lock tooling
+        uses: validityBase/vbase-github-actions/.github/actions/setup-python-deps@v1
+        with:
+          requirements-files: |
+            requirements/lock/tools.txt
+          python-version: "3.12"
+          require-hashes: "true"
+
+      - name: Verify generated lock files are current
+        run: |
+          pip-compile --strip-extras --no-annotate --generate-hashes -o requirements/lock/docs.txt requirements/src/docs.in
+          pip-compile --strip-extras --no-annotate --allow-unsafe --generate-hashes -o requirements/lock/tools.txt requirements/src/tools.in
+          git diff --exit-code -- requirements/lock/docs.txt requirements/lock/tools.txt
+
+      - name: Install docs dependencies
+        uses: validityBase/vbase-github-actions/.github/actions/setup-python-deps@v1
+        with:
+          requirements-files: |
+            requirements/lock/docs.txt
+          python-version: "3.12"
+          require-hashes: "true"
+
+      - name: Check installed dependencies
+        run: python -m pip check
