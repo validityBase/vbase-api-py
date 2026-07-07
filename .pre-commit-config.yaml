@@ -11,7 +11,7 @@ repos:
     hooks:
       - id: isort
   - repo: https://github.com/psf/black
-    rev: 24.8.0
+    rev: 87928e6d6761a4a6d22250e1fee5601b3998086e
     hooks:
       - id: black
         language_version: python3
