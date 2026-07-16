@@ -1,0 +1,65 @@
+name: File Integrity E2E
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  file-integrity-e2e:
+    name: Python client file integrity (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+
+    steps:
+      - name: Checkout repository
+        # v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+
+      - name: Install E2E dependencies
+        uses: validityBase/vbase-github-actions/.github/actions/setup-python-deps@v1
+        with:
+          requirements-files: |
+            requirements/lock/e2e.txt
+          python-version: "3.12"
+
+      - name: Install Bitwarden helper dependency
+        shell: bash
+        env:
+          VBASE_COMMON_REPO_READ_TOKEN: ${{ secrets.VBASE_COMMON_REPO_READ_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${VBASE_COMMON_REPO_READ_TOKEN:-}" ]; then
+            echo "Missing VBASE_COMMON_REPO_READ_TOKEN GitHub secret." >&2
+            exit 1
+          fi
+
+          echo "::add-mask::${VBASE_COMMON_REPO_READ_TOKEN}"
+          python -m pip install --no-deps -r requirements-private.txt
+
+      - name: Install package
+        run: python -m pip install --no-deps --no-build-isolation -e .
+
+      - name: Run file-integrity E2E tests
+        shell: bash
+        env:
+          VBASE_DJANGO_TOOLS_CYPRESS_RUNNER_STG_TOKEN: ${{ secrets.VBASE_DJANGO_TOOLS_CYPRESS_RUNNER_STG_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          bash ops/scripts/btenv.sh run \
+            --project vbase-django-tools-cypress-runner-stg \
+            --token-env VBASE_DJANGO_TOOLS_CYPRESS_RUNNER_STG_TOKEN \
+            -- python -m unittest discover -s tests -v

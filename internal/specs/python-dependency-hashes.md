@@ -22,10 +22,18 @@ CI install environment.
 - `requirements/src/docs.in` is the human-edited documentation publishing input.
 - `requirements/lock/docs.txt` is generated from `requirements/src/docs.in` and
   includes package runtime and documentation build dependencies with hashes.
+- `requirements/src/e2e.in` is the human-edited live E2E test environment
+  input. It includes the package runtime dependencies plus test-only S3 and
+  Bitwarden dependencies.
+- `requirements/lock/e2e.txt` is generated from `requirements/src/e2e.in` and
+  includes live E2E dependencies with hashes.
 - `requirements/src/tools.in` is the human-edited lock-regeneration tooling
   input.
 - `requirements/lock/tools.txt` is generated from `requirements/src/tools.in`
   and includes the minimal `pip-tools` environment with hashes.
+- `requirements-private.txt` pins private Git helper dependencies installed
+  separately with `--no-deps`. It currently installs `vbase-common` for the
+  `bw_sm` Bitwarden helper and requires `VBASE_COMMON_REPO_READ_TOKEN`.
 
 Do not create a generated base/runtime lock for package metadata. Do not edit
 generated `.txt` lock files by hand.
@@ -52,6 +60,13 @@ To add or update a docs dependency:
 ```bash
 # edit requirements/src/docs.in
 pip-compile --strip-extras --no-annotate --generate-hashes -o requirements/lock/docs.txt requirements/src/docs.in
+```
+
+To add or update a live E2E dependency:
+
+```bash
+# edit requirements/src/e2e.in
+pip-compile --strip-extras --no-annotate --allow-unsafe --generate-hashes -o requirements/lock/e2e.txt requirements/src/e2e.in
 ```
 
 To update the lock-generation tooling, edit the pinned `pip-tools==...`
