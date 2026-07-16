@@ -16,6 +16,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
         os:
           - ubuntu-latest
@@ -33,6 +34,7 @@ jobs:
           requirements-files: |
             requirements/lock/e2e.txt
           python-version: "3.12"
+          require-hashes: "true"
 
       - name: Install Bitwarden helper dependency
         shell: bash

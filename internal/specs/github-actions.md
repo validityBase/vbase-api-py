@@ -48,10 +48,15 @@ Do not restore a local `.github/actions/setup-python-deps` copy. Use `validityBa
 - Runs on pull requests, pushes to `main`, and manual `workflow_dispatch`.
 - Uses an OS matrix over `ubuntu-latest`, `macos-latest`, and `windows-latest`
   to cover the VDT-831 client-library platform matrix.
+- Runs the OS matrix with `max-parallel: 1` because each job uses the same
+  staging Bitwarden runner user/API key. Serial execution avoids overlapping
+  blockchain transactions from the same live account while preserving OS
+  coverage.
 - Installs `requirements/lock/e2e.txt` through `setup-python-deps@v1` with
-  Python 3.12, installs `requirements-private.txt` with
-  `VBASE_COMMON_REPO_READ_TOKEN`, installs the package in editable mode, and
-  runs `python -m unittest discover -s tests -v` through `ops/scripts/btenv.sh`.
+  Python 3.12 and `require-hashes: "true"`, installs
+  `requirements-private.txt` with `VBASE_COMMON_REPO_READ_TOKEN`, installs the
+  package in editable mode, and runs `python -m unittest discover -s tests -v`
+  through `ops/scripts/btenv.sh`.
 - Runtime app/API/S3 credentials come from the Bitwarden project
   `vbase-django-tools-cypress-runner-stg`, accessed with the GitHub secret
   `VBASE_DJANGO_TOOLS_CYPRESS_RUNNER_STG_TOKEN`.
