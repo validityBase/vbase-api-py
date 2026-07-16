@@ -46,6 +46,10 @@ Do not restore a local `.github/actions/setup-python-deps` copy. Use `validityBa
 
 ### `.github/workflows/file-integrity-e2e.yml`
 - Runs on pull requests, pushes to `main`, and manual `workflow_dispatch`.
+- Skips forked pull requests because the live E2E job requires repository
+  secrets for the staging Bitwarden runner token and private `vbase-common`
+  read token. Same-repository pull requests, pushes, and manual runs execute the
+  job.
 - Uses an OS matrix over `ubuntu-latest`, `macos-latest`, and `windows-latest`
   to cover the VDT-831 client-library platform matrix.
 - Runs the OS matrix with `max-parallel: 1` because each job uses the same

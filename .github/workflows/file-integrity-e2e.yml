@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   file-integrity-e2e:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
     name: Python client file integrity (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
