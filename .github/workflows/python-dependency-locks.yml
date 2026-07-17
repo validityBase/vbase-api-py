@@ -30,8 +30,9 @@ jobs:
       - name: Verify generated lock files are current
         run: |
           pip-compile --strip-extras --no-annotate --generate-hashes -o requirements/lock/docs.txt requirements/src/docs.in
+          pip-compile --strip-extras --no-annotate --allow-unsafe --generate-hashes -o requirements/lock/e2e.txt requirements/src/e2e.in
           pip-compile --strip-extras --no-annotate --allow-unsafe --generate-hashes -o requirements/lock/tools.txt requirements/src/tools.in
-          git diff --exit-code -- requirements/lock/docs.txt requirements/lock/tools.txt
+          git diff --exit-code -- requirements/lock/docs.txt requirements/lock/e2e.txt requirements/lock/tools.txt
 
       - name: Install docs dependencies
         uses: validityBase/vbase-github-actions/.github/actions/setup-python-deps@v1

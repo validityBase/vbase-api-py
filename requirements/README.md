@@ -22,5 +22,10 @@ Regenerate terminal environment lock files:
 
 ```bash
 pip-compile --strip-extras --no-annotate --generate-hashes -o requirements/lock/docs.txt requirements/src/docs.in
+pip-compile --strip-extras --no-annotate --allow-unsafe --generate-hashes -o requirements/lock/e2e.txt requirements/src/e2e.in
 pip-compile --strip-extras --no-annotate --allow-unsafe --generate-hashes -o requirements/lock/tools.txt requirements/src/tools.in
 ```
+
+Private helper dependencies are installed separately from
+`../requirements-private.txt` with `--no-deps` and require
+`VBASE_COMMON_REPO_READ_TOKEN`.
