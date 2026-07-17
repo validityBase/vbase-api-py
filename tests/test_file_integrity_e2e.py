@@ -41,6 +41,19 @@ def _first_env(*names: str) -> Optional[str]:
     return None
 
 
+def _int_env(name: str, default: int) -> int:
+    value = _first_env(name)
+    if value is None:
+        return default
+
+    try:
+        return int(value)
+    except ValueError:
+        raise ValueError(
+            f"{name} must be an integer number of seconds; got {value!r}."
+        ) from None
+
+
 @dataclass(frozen=True)
 class LiveE2EConfig:
     """Configuration needed for live app/API file-integrity tests."""
@@ -85,7 +98,7 @@ class LiveE2EConfig:
             aws_secret_access_key=aws_secret_access_key,
             aws_session_token=_first_env("AWS_SESSION_TOKEN"),
             aws_region=_first_env("AWS_REGION", "AWS_DEFAULT_REGION") or "us-east-1",
-            timeout=int(_first_env("FILE_INTEGRITY_E2E_TIMEOUT") or "60"),
+            timeout=_int_env("FILE_INTEGRITY_E2E_TIMEOUT", 60),
         )
 
 
@@ -150,8 +163,8 @@ class VBaseAPIClientFileIntegrityE2ETests(unittest.TestCase):
 
     def _create_collection(self, name_prefix: str):
         collection_name = f"{name_prefix}-{uuid.uuid4().hex[:12]}"
-        deadline = time.monotonic() + int(
-            _first_env("FILE_INTEGRITY_E2E_API_WAIT_SECONDS") or "60"
+        deadline = time.monotonic() + _int_env(
+            "FILE_INTEGRITY_E2E_API_WAIT_SECONDS", 60
         )
         last_error = None
 
@@ -181,8 +194,8 @@ class VBaseAPIClientFileIntegrityE2ETests(unittest.TestCase):
         return path
 
     def _download_stored_file(self, file_path: str) -> bytes:
-        deadline = time.monotonic() + int(
-            _first_env("FILE_INTEGRITY_E2E_STORAGE_WAIT_SECONDS") or "120"
+        deadline = time.monotonic() + _int_env(
+            "FILE_INTEGRITY_E2E_STORAGE_WAIT_SECONDS", 120
         )
         last_error = None
 
@@ -241,8 +254,8 @@ class VBaseAPIClientFileIntegrityE2ETests(unittest.TestCase):
         )
 
     def _wait_for_indexed_stamp(self, object_cid: str, collection_cid: str) -> None:
-        deadline = time.monotonic() + int(
-            _first_env("FILE_INTEGRITY_E2E_INDEX_WAIT_SECONDS") or "120"
+        deadline = time.monotonic() + _int_env(
+            "FILE_INTEGRITY_E2E_INDEX_WAIT_SECONDS", 120
         )
         while time.monotonic() < deadline:
             result = self.client.verify_stamps([object_cid], filter_by_user=True)

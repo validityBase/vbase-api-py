@@ -169,7 +169,17 @@ def dump_env(output_file: str) -> int:
             .replace("\n", "\\n")
         )
         lines.append(f'{key}="{escaped}"')
-    Path(output_file).write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    output_path = Path(output_file)
+    if output_path.exists():
+        output_path.chmod(0o600)
+    file_descriptor = os.open(
+        output_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600
+    )
+    with os.fdopen(file_descriptor, "w", encoding="utf-8") as output:
+        output.write("\n".join(lines) + "\n")
+    output_path.chmod(0o600)
+
     print(f"Wrote {output_file}")
     return 0
 
