@@ -145,7 +145,9 @@ Missing Python dependency: bw_sm.
 Install the Bitwarden helper dependencies in the Python environment used by this command:
 
   $PYTHON_BIN -m pip install --require-hashes -r requirements/e2e.txt
-  VBASE_COMMON_REPO_READ_TOKEN="<github-token>" $PYTHON_BIN -m pip install --no-deps -r requirements/private.txt
+  printf 'machine github.com\nlogin x-access-token\npassword %s\n' "<github-token>" > ~/.netrc
+  chmod 600 ~/.netrc
+  $PYTHON_BIN -m pip install --no-deps -r requirements/private.txt
 
 You can also set BTENV_PYTHON=/path/to/python if you want to use a different environment.
 EOF

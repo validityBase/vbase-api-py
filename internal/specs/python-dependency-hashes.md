@@ -33,7 +33,8 @@ CI install environment.
   and includes the minimal `pip-tools` environment with hashes.
 - `requirements/private.txt` pins private Git helper dependencies installed
   separately with `--no-deps`. It currently installs `vbase-common` for the
-  `bw_sm` Bitwarden helper and requires `VBASE_COMMON_REPO_READ_TOKEN`.
+  `bw_sm` Bitwarden helper and requires GitHub credentials configured for
+  private repository access.
 
 Do not create a generated base/runtime lock for package metadata. Do not edit
 generated `.txt` lock files by hand.
