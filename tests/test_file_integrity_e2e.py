@@ -172,7 +172,7 @@ class VBaseAPIClientFileIntegrityE2ETests(unittest.TestCase):
             try:
                 return self.client.create_collection(
                     name=collection_name,
-                    description="vbase-api-py VDT-831 file-integrity E2E collection",
+                    description="vbase-api-py file-integrity E2E collection",
                     is_pinned=False,
                 )
             except VBaseAPIError as exc:

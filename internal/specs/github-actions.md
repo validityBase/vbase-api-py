@@ -51,7 +51,7 @@ Do not restore a local `.github/actions/setup-python-deps` copy. Use `validityBa
   read token. Same-repository pull requests, pushes, and manual runs execute the
   job.
 - Uses an OS matrix over `ubuntu-latest`, `macos-latest`, and `windows-latest`
-  to cover the VDT-831 client-library platform matrix.
+  to cover the client-library platform matrix.
 - Runs the OS matrix with `max-parallel: 1` because each job uses the same
   staging Bitwarden runner user/API key. Serial execution avoids overlapping
   blockchain transactions from the same live account while preserving OS

@@ -2,8 +2,8 @@
 
 ## Scope
 
-`vbase-api-py` owns client-library coverage for the VDT-831 stamped-file
-integrity matrix. The tests verify that the Python client's public stamping
+`vbase-api-py` owns client-library coverage for stamped-file
+integrity scenarios. The tests verify that the Python client's public stamping
 methods remain compatible with the app REST API and that stored file objects are
 byte-identical to the original source bytes.
 
