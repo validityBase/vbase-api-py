@@ -41,7 +41,7 @@ jobs:
         run: python -m pip install --no-deps --no-build-isolation -e .
 
       - name: Run file-integrity E2E tests
-        uses: validityBase/vbase-github-actions/.github/actions/run-with-bitwarden-env@065aec4e144621868f26960b4ea286bab066fd9e
+        uses: validityBase/vbase-github-actions/.github/actions/run-with-bitwarden-env@863526aeff6dce34a0cf242d2c7649a8f2a01510
         with:
           bitwarden-access-token: ${{ secrets.VBASE_DJANGO_TOOLS_CYPRESS_RUNNER_STG_TOKEN }}
           vbase-common-repo-read-token: ${{ secrets.VBASE_COMMON_REPO_READ_TOKEN }}
