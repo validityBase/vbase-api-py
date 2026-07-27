@@ -49,10 +49,8 @@ jobs:
             exit 1
           fi
 
-          export GIT_CONFIG_GLOBAL=/tmp/gitconfig
-          git config --global url."https://x-access-token:${VBASE_COMMON_REPO_READ_TOKEN}@github.com/".insteadOf "https://github.com/"
-          python -m pip install --no-cache-dir --no-deps -r requirements/private.txt
-          rm -f /tmp/gitconfig
+          echo "::add-mask::${VBASE_COMMON_REPO_READ_TOKEN}"
+          python -m pip install --no-deps -r requirements/private.txt
 
       - name: Install package
         run: python -m pip install --no-deps --no-build-isolation -e .
