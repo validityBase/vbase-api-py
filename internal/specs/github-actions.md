@@ -12,9 +12,9 @@
 Published runtime dependencies live in `requirements.in` as abstract ranges and are read by `pyproject.toml`.
 Documentation publishing, live E2E tests, and lock tooling are terminal
 environments owned by this repository, so their generated lock files live under
-`requirements/lock/` and are installed with `require-hashes`.
+`requirements/` and are installed with `require-hashes`.
 
-Private helper dependencies live in `requirements-private.txt` and are installed
+Private helper dependencies live in `requirements/private.txt` and are installed
 separately with `--no-deps`. The current private helper is `vbase-common`, which
 provides `bw_sm` for Bitwarden Secrets Manager access. The workflow must provide
 `VBASE_COMMON_REPO_READ_TOKEN` when installing that file.
@@ -25,14 +25,14 @@ Do not restore a local `.github/actions/setup-python-deps` copy. Use `validityBa
 
 ### `.github/workflows/python-dependency-locks.yml`
 - Runs on pull requests, pushes to `main`, and manual `workflow_dispatch`.
-- Installs `requirements/lock/tools.txt` through `setup-python-deps@v1` with Python 3.12 and `require-hashes: "true"`.
-- Regenerates `requirements/lock/docs.txt`, `requirements/lock/e2e.txt`, and `requirements/lock/tools.txt`; the workflow fails if committed lock files differ.
-- Installs `requirements/lock/docs.txt` and checks installed dependency consistency with `python -m pip check`.
+- Installs `requirements/tools.txt` through `setup-python-deps@v1` with Python 3.12 and `require-hashes: "true"`.
+- Regenerates `requirements/docs.txt`, `requirements/e2e.txt`, and `requirements/tools.txt`; the workflow fails if committed lock files differ.
+- Installs `requirements/docs.txt` and checks installed dependency consistency with `python -m pip check`.
 
 ### `.github/workflows/documentation-publishing.yml`
 - Runs on pushes to `main` and manual dispatch.
 - Delegates to `validityBase/vbase-github-actions/.github/workflows/publish-docs.yml@v1`.
-- Installs `requirements/lock/docs.txt` with `require-hashes: true`.
+- Installs `requirements/docs.txt` with `require-hashes: true`.
 - Builds Sphinx Markdown docs into `docs/_build/markdown` and rewrites generated module references before publishing.
 - Publishes to the central docs repository.
 - Uses `DOCS_REPO_ACCESS_TOKEN` for the central docs repository.
@@ -56,9 +56,9 @@ Do not restore a local `.github/actions/setup-python-deps` copy. Use `validityBa
   staging Bitwarden runner user/API key. Serial execution avoids overlapping
   blockchain transactions from the same live account while preserving OS
   coverage.
-- Installs `requirements/lock/e2e.txt` through `setup-python-deps@v1` with
+- Installs `requirements/e2e.txt` through `setup-python-deps@v1` with
   Python 3.12 and `require-hashes: "true"`, installs
-  `requirements-private.txt` with `VBASE_COMMON_REPO_READ_TOKEN`, installs the
+  `requirements/private.txt` with `VBASE_COMMON_REPO_READ_TOKEN`, installs the
   package in editable mode, and runs `python -m unittest discover -s tests -v`
   through `ops/scripts/btenv.sh`.
 - Runtime app/API/S3 credentials come from the Bitwarden project

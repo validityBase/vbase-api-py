@@ -33,7 +33,7 @@ jobs:
         uses: validityBase/vbase-github-actions/.github/actions/setup-python-deps@v1
         with:
           requirements-files: |
-            requirements/lock/e2e.txt
+            requirements/e2e.txt
           python-version: "3.12"
           require-hashes: "true"
 
@@ -50,7 +50,7 @@ jobs:
           fi
 
           echo "::add-mask::${VBASE_COMMON_REPO_READ_TOKEN}"
-          python -m pip install --no-deps -r requirements-private.txt
+          python -m pip install --no-deps -r requirements/private.txt
 
       - name: Install package
         run: python -m pip install --no-deps --no-build-isolation -e .

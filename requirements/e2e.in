@@ -1,4 +1,4 @@
--r ../../requirements.in
+-r ../requirements.in
 
 boto3
 bitwarden-sdk>=2.0.0

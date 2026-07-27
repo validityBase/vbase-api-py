@@ -23,7 +23,7 @@ try:
     from botocore.exceptions import BotoCoreError, ClientError
 except ImportError as exc:  # pragma: no cover
     raise unittest.SkipTest(
-        "Install requirements/lock/e2e.txt to run live file-integrity E2E tests."
+        "Install requirements/e2e.txt to run live file-integrity E2E tests."
     ) from exc
 
 from vbase_api import VBaseAPIClient, VBaseAPIError

@@ -23,22 +23,22 @@ jobs:
         uses: validityBase/vbase-github-actions/.github/actions/setup-python-deps@v1
         with:
           requirements-files: |
-            requirements/lock/tools.txt
+            requirements/tools.txt
           python-version: "3.12"
           require-hashes: "true"
 
       - name: Verify generated lock files are current
         run: |
-          pip-compile --strip-extras --no-annotate --generate-hashes -o requirements/lock/docs.txt requirements/src/docs.in
-          pip-compile --strip-extras --no-annotate --allow-unsafe --generate-hashes -o requirements/lock/e2e.txt requirements/src/e2e.in
-          pip-compile --strip-extras --no-annotate --allow-unsafe --generate-hashes -o requirements/lock/tools.txt requirements/src/tools.in
-          git diff --exit-code -- requirements/lock/docs.txt requirements/lock/e2e.txt requirements/lock/tools.txt
+          pip-compile --strip-extras --no-annotate --generate-hashes -o requirements/docs.txt requirements/docs.in
+          pip-compile --strip-extras --no-annotate --allow-unsafe --generate-hashes -o requirements/e2e.txt requirements/e2e.in
+          pip-compile --strip-extras --no-annotate --allow-unsafe --generate-hashes -o requirements/tools.txt requirements/tools.in
+          git diff --exit-code -- requirements/docs.txt requirements/e2e.txt requirements/tools.txt
 
       - name: Install docs dependencies
         uses: validityBase/vbase-github-actions/.github/actions/setup-python-deps@v1
         with:
           requirements-files: |
-            requirements/lock/docs.txt
+            requirements/docs.txt
           python-version: "3.12"
           require-hashes: "true"
 

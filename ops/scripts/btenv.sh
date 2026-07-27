@@ -136,7 +136,7 @@ require_project_context() {
 }
 
 # btenv.py imports bw_sm from vbase-common; in CI that package is installed via
-# requirements-private.txt after VBASE_COMMON_REPO_READ_TOKEN is configured.
+# requirements/private.txt after VBASE_COMMON_REPO_READ_TOKEN is configured.
 require_btenv_deps() {
   if ! "$PYTHON_BIN" -c "import bw_sm" >/dev/null 2>&1; then
     cat >&2 <<EOF
@@ -144,8 +144,8 @@ Missing Python dependency: bw_sm.
 
 Install the Bitwarden helper dependencies in the Python environment used by this command:
 
-  $PYTHON_BIN -m pip install --require-hashes -r requirements/lock/e2e.txt
-  VBASE_COMMON_REPO_READ_TOKEN="<github-token>" $PYTHON_BIN -m pip install --no-deps -r requirements-private.txt
+  $PYTHON_BIN -m pip install --require-hashes -r requirements/e2e.txt
+  VBASE_COMMON_REPO_READ_TOKEN="<github-token>" $PYTHON_BIN -m pip install --no-deps -r requirements/private.txt
 
 You can also set BTENV_PYTHON=/path/to/python if you want to use a different environment.
 EOF
