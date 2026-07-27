@@ -27,5 +27,5 @@ pip-compile --strip-extras --no-annotate --allow-unsafe --generate-hashes -o req
 ```
 
 Private helper dependencies are installed separately from
-`requirements/private.txt` with `--no-deps` after GitHub credentials are
+`requirements/private.txt` with `--no-deps` after a temporary Git URL rewrite is
 configured for private repository access.

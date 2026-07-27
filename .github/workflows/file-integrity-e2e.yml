@@ -37,23 +37,22 @@ jobs:
           python-version: "3.12"
           require-hashes: "true"
 
-      - name: Configure GitHub package credentials
-        env:
-          PRIVATE_GITHUB_TOKEN: ${{ secrets.VBASE_COMMON_REPO_READ_TOKEN }}
+      - name: Install Bitwarden helper dependency
         shell: bash
+        env:
+          VBASE_COMMON_REPO_READ_TOKEN: ${{ secrets.VBASE_COMMON_REPO_READ_TOKEN }}
         run: |
           set -euo pipefail
 
-          if [ -z "$PRIVATE_GITHUB_TOKEN" ]; then
+          if [ -z "${VBASE_COMMON_REPO_READ_TOKEN:-}" ]; then
             echo "::error::VBASE_COMMON_REPO_READ_TOKEN is required for Git dependencies."
             exit 1
           fi
 
-          printf 'machine github.com\nlogin x-access-token\npassword %s\n' "$PRIVATE_GITHUB_TOKEN" > ~/.netrc
-          chmod 600 ~/.netrc
-
-      - name: Install Bitwarden helper dependency
-        run: python -m pip install --no-deps -r requirements/private.txt
+          export GIT_CONFIG_GLOBAL=/tmp/gitconfig
+          git config --global url."https://${VBASE_COMMON_REPO_READ_TOKEN}@github.com/".insteadOf "https://github.com/"
+          python -m pip install --no-cache-dir --no-deps -r requirements/private.txt
+          rm -f /tmp/gitconfig
 
       - name: Install package
         run: python -m pip install --no-deps --no-build-isolation -e .

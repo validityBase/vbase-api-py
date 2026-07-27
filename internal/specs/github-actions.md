@@ -57,10 +57,10 @@ Do not restore a local `.github/actions/setup-python-deps` copy. Use `validityBa
   blockchain transactions from the same live account while preserving OS
   coverage.
 - Installs `requirements/e2e.txt` through `setup-python-deps@v1` with
-  Python 3.12 and `require-hashes: "true"`, configures `~/.netrc` from
-  `VBASE_COMMON_REPO_READ_TOKEN`, installs `requirements/private.txt`, installs
-  the package in editable mode, and runs `python -m unittest discover -s tests -v`
-  through `ops/scripts/btenv.sh`.
+  Python 3.12 and `require-hashes: "true"`, configures a temporary Git URL
+  rewrite from `VBASE_COMMON_REPO_READ_TOKEN`, installs
+  `requirements/private.txt`, installs the package in editable mode, and runs
+  `python -m unittest discover -s tests -v` through `ops/scripts/btenv.sh`.
 - Runtime app/API/S3 credentials come from the Bitwarden project
   `vbase-django-tools-cypress-runner-stg`, accessed with the GitHub secret
   `VBASE_DJANGO_TOOLS_CYPRESS_RUNNER_STG_TOKEN`.
