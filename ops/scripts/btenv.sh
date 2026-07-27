@@ -147,7 +147,7 @@ Install the Bitwarden helper dependencies in the Python environment used by this
   $PYTHON_BIN -m pip install --require-hashes -r requirements/e2e.txt
   export VBASE_COMMON_REPO_READ_TOKEN="<github-token>"
   export GIT_CONFIG_GLOBAL=/tmp/gitconfig
-  git config --global url."https://${VBASE_COMMON_REPO_READ_TOKEN}@github.com/".insteadOf "https://github.com/"
+  git config --global url."https://x-access-token:${VBASE_COMMON_REPO_READ_TOKEN}@github.com/".insteadOf "https://github.com/"
   $PYTHON_BIN -m pip install --no-cache-dir --no-deps -r requirements/private.txt
   rm -f /tmp/gitconfig
 
