@@ -15,7 +15,7 @@ jobs:
     with:
       python-version: "3.12"
       requirements-files: |
-        requirements/lock/docs.txt
+        requirements/docs.txt
       require-hashes: true
       pre-publish-command: |
         set -euo pipefail

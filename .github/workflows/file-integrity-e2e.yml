@@ -1,0 +1,79 @@
+name: File Integrity E2E
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  file-integrity-e2e:
+    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]') }}
+    name: Python client file integrity (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+
+    steps:
+      - name: Checkout repository
+        # v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+
+      - name: Install E2E dependencies
+        uses: validityBase/vbase-github-actions/.github/actions/setup-python-deps@v1
+        with:
+          requirements-files: |
+            requirements/e2e.txt
+          python-version: "3.12"
+          require-hashes: "true"
+
+      - name: Install package
+        run: python -m pip install --no-deps --no-build-isolation -e .
+
+      - name: Validate live E2E secrets
+        env:
+          VBASE_API_KEY: ${{ secrets.VBASE_API_KEY }}
+          S3_VALIDATION_BUCKET: ${{ secrets.S3_VALIDATION_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          missing=()
+          for secret_name in \
+            VBASE_API_KEY \
+            S3_VALIDATION_BUCKET \
+            AWS_ACCESS_KEY_ID \
+            AWS_SECRET_ACCESS_KEY
+          do
+            if [ -z "${!secret_name:-}" ]; then
+              missing+=("$secret_name")
+            fi
+          done
+
+          if [ "${#missing[@]}" -ne 0 ]; then
+            printf '::error::Missing live E2E secret: %s\n' "${missing[@]}"
+            exit 1
+          fi
+
+      - name: Run file-integrity E2E tests
+        env:
+          VBASE_API_KEY: ${{ secrets.VBASE_API_KEY }}
+          BASE_URL: ${{ secrets.BASE_URL }}
+          S3_VALIDATION_BUCKET: ${{ secrets.S3_VALIDATION_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: python -m unittest tests.test_file_integrity_e2e -v

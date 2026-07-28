@@ -1,0 +1,4 @@
+-r ../requirements.in
+
+boto3
+setuptools>=77.0.3

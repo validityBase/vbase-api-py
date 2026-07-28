@@ -19,13 +19,14 @@ python -m build
 python -m twine check dist/*
 
 # Build generated Markdown docs
-python -m pip install --require-hashes -r requirements/lock/docs.txt
+python -m pip install --require-hashes -r requirements/docs.txt
 sphinx-build -b markdown docs/ docs/_build/markdown
 
 # Regenerate dependency locks
-python -m pip install --require-hashes -r requirements/lock/tools.txt
-pip-compile --strip-extras --no-annotate --generate-hashes -o requirements/lock/docs.txt requirements/src/docs.in
-pip-compile --strip-extras --no-annotate --allow-unsafe --generate-hashes -o requirements/lock/tools.txt requirements/src/tools.in
+python -m pip install --require-hashes -r requirements/tools.txt
+pip-compile --strip-extras --no-annotate --generate-hashes -o requirements/docs.txt requirements/docs.in
+pip-compile --strip-extras --no-annotate --allow-unsafe --generate-hashes -o requirements/e2e.txt requirements/e2e.in
+pip-compile --strip-extras --no-annotate --allow-unsafe --generate-hashes -o requirements/tools.txt requirements/tools.in
 
 # Run formatting hooks when available
 pre-commit run --all-files
@@ -34,7 +35,7 @@ pre-commit run --all-files
 ## Code Standards
 
 - Published runtime dependencies live in `requirements.in` and are read by `pyproject.toml`.
-- Documentation and lock-tooling dependencies live under `requirements/src/` with generated hash-locked outputs under `requirements/lock/`.
+- Documentation, E2E, and lock-tooling inputs and generated hash-locked outputs live together under `requirements/`.
 - Use Python `>=3.8` compatible syntax unless the package metadata changes.
 - Use `black` and `isort`; pre-commit configuration is in `.pre-commit-config.yaml`.
 - Do not commit secrets, tokens, generated credentials, webhook URLs, or private environment payloads.

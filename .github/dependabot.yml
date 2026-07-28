@@ -1,0 +1,23 @@
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    # Dependabot can scan the pip-compile layout when it sees both
+    # requirements/*.in inputs and requirements/*.txt outputs.
+    directory: "/requirements"
+    schedule:
+      interval: "daily"
+      time: "00:00"
+      timezone: "Etc/UTC"
+    versioning-strategy: "increase-if-necessary"
+    groups:
+      pip-minor-patch-updates:
+        applies-to: "version-updates"
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      pip-security-updates:
+        applies-to: "security-updates"
+        patterns:
+          - "*"
