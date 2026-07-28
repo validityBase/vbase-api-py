@@ -43,20 +43,27 @@ For both text and binary files, the live E2E test:
 
 The live tests are skipped unless the required environment is present.
 
-CI loads these values directly from GitHub Actions secrets so the public package
-repository keeps the live test wiring small and self-contained.
+CI loads credential values from GitHub Actions secrets and non-secret live test
+configuration from GitHub Actions variables so the public package repository
+keeps the live test wiring small and self-contained.
 
-Required for Python client API calls:
+Required secret for Python client API calls:
 
 - `VBASE_API_KEY`
+
+Non-secret variable for Python client API calls:
+
 - `BASE_URL`; defaults to `https://staging.app.vbase.com` if absent
 
-Required for stored-object downloads:
+Required secrets for stored-object downloads:
 
 - `S3_VALIDATION_BUCKET`
 - `AWS_ACCESS_KEY_ID`
 - `AWS_SECRET_ACCESS_KEY`
 - `AWS_SESSION_TOKEN` when temporary credentials are used
+
+Non-secret variable for stored-object downloads:
+
 - `AWS_REGION` or `AWS_DEFAULT_REGION`; defaults to `us-east-1` if both are
   absent
 

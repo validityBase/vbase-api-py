@@ -54,8 +54,10 @@ Do not restore a local `.github/actions/setup-python-deps` copy. Use `validityBa
   Python 3.12 and `require-hashes: "true"`, installs the package in editable
   mode, and runs `python -m unittest tests.test_file_integrity_e2e -v`.
 - Runtime app/API/S3 credentials come directly from GitHub Actions secrets:
-  `VBASE_API_KEY`, `BASE_URL`, `S3_VALIDATION_BUCKET`, `AWS_ACCESS_KEY_ID`,
-  `AWS_SECRET_ACCESS_KEY`, optional `AWS_SESSION_TOKEN`, and `AWS_REGION`.
+  `VBASE_API_KEY`, `S3_VALIDATION_BUCKET`, `AWS_ACCESS_KEY_ID`,
+  `AWS_SECRET_ACCESS_KEY`, and optional `AWS_SESSION_TOKEN`.
+- Non-secret live E2E configuration comes from GitHub Actions variables:
+  `BASE_URL` and `AWS_REGION`.
 - Stored bytes are verified by reading the returned `file_object.file_path`
   directly from S3 and comparing exact byte length, SHA3-256 CID, and full
   content for text and binary files.
