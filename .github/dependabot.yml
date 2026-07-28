@@ -4,9 +4,6 @@ updates:
     # Dependabot can scan the pip-compile layout when it sees both
     # requirements/*.in inputs and requirements/*.txt outputs.
     directory: "/requirements"
-    exclude-paths:
-      - "private.in"
-      - "private.txt"
     schedule:
       interval: "daily"
       time: "00:00"
