@@ -1,9 +1,9 @@
 """Live file-integrity E2E coverage for the vBase API Python client.
 
-These tests intentionally call the public ``VBaseAPIClient`` stamping methods
-and then read the stored object from S3 to verify the final bytes. They are
-skipped unless live E2E credentials are supplied through environment variables;
-see ``internal/specs/e2e-file-integrity.md``.
+These tests call the public ``VBaseAPIClient`` stamping methods and then read
+the stored object from S3 to verify the final bytes. They are skipped unless
+live E2E credentials are supplied through GitHub Actions secrets or equivalent
+environment variables.
 """
 
 from __future__ import annotations
@@ -69,11 +69,10 @@ class LiveE2EConfig:
 
     @classmethod
     def from_env(cls) -> "LiveE2EConfig":
-        api_key = _first_env("VBASE_API_KEY_CYPRESS", "VBASE_API_KEY")
+        api_key = _first_env("VBASE_API_KEY")
         if not api_key:
             raise unittest.SkipTest(
-                "Set VBASE_API_KEY_CYPRESS or VBASE_API_KEY to run live "
-                "file-integrity E2E tests."
+                "Set VBASE_API_KEY to run live file-integrity E2E tests."
             )
 
         s3_bucket = _first_env("S3_VALIDATION_BUCKET")
@@ -83,16 +82,16 @@ class LiveE2EConfig:
             )
 
         aws_access_key_id = _first_env("AWS_ACCESS_KEY_ID")
-        aws_secret_access_key = _first_env("AWS_SECRET_ACCESS_KEY", "AWS_SECRET_KEY")
+        aws_secret_access_key = _first_env("AWS_SECRET_ACCESS_KEY")
         if not aws_access_key_id or not aws_secret_access_key:
             raise unittest.SkipTest(
                 "Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY "
-                "(or AWS_SECRET_KEY) to download stored files from S3."
+                "to download stored files from S3."
             )
 
         return cls(
             api_key=api_key,
-            base_url=_first_env("BASE_URL", "SITE_URL") or "https://staging.app.vbase.com",
+            base_url=_first_env("BASE_URL") or "https://staging.app.vbase.com",
             s3_bucket=s3_bucket,
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
@@ -188,7 +187,8 @@ class VBaseAPIClientFileIntegrityE2ETests(unittest.TestCase):
 
             time.sleep(5)
 
-    def _write_temp_file(self, directory: Path, file_case: FileCase) -> Path:
+    @staticmethod
+    def _write_temp_file(directory: Path, file_case: FileCase) -> Path:
         path = directory / file_case.file_name
         path.write_bytes(file_case.content)
         return path

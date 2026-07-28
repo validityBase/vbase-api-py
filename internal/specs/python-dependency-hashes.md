@@ -23,18 +23,14 @@ CI install environment.
 - `requirements/docs.txt` is generated from `requirements/docs.in` and
   includes package runtime and documentation build dependencies with hashes.
 - `requirements/e2e.in` is the human-edited live E2E test environment
-  input. It includes the package runtime dependencies plus test-only S3 and
-  Bitwarden dependencies.
+  input. It includes the package runtime dependencies plus public test-only S3
+  dependencies.
 - `requirements/e2e.txt` is generated from `requirements/e2e.in` and
   includes live E2E dependencies with hashes.
 - `requirements/tools.in` is the human-edited lock-regeneration tooling
   input.
 - `requirements/tools.txt` is generated from `requirements/tools.in`
   and includes the minimal `pip-tools` environment with hashes.
-- `requirements/private.txt` pins private Git helper dependencies installed
-  separately with `--no-deps`. It currently installs `vbase-common` for the
-  `bw_sm` Bitwarden helper and requires GitHub credentials configured for
-  private repository access.
 
 Do not create a generated base/runtime lock for package metadata. Do not edit
 generated `.txt` lock files by hand.

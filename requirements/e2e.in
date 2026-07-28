@@ -1,5 +1,4 @@
 -r ../requirements.in
 
 boto3
-bitwarden-sdk>=2.0.0
 setuptools>=77.0.3

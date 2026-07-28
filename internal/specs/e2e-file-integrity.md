@@ -43,22 +43,19 @@ For both text and binary files, the live E2E test:
 
 The live tests are skipped unless the required environment is present.
 
-CI loads these values from the Bitwarden project
-`vbase-django-tools-cypress-runner-stg` through `ops/scripts/btenv.sh`. The
-secret names intentionally match the app/Cypress runner project so both repos
-use the same staging credential contract.
+CI loads these values directly from GitHub Actions secrets so the public package
+repository keeps the live test wiring small and self-contained.
 
 Required for Python client API calls:
 
-- `VBASE_API_KEY_CYPRESS`
-- `BASE_URL` or `SITE_URL`; defaults to `https://staging.app.vbase.com` if both
-  are absent
+- `VBASE_API_KEY`
+- `BASE_URL`; defaults to `https://staging.app.vbase.com` if absent
 
 Required for stored-object downloads:
 
 - `S3_VALIDATION_BUCKET`
 - `AWS_ACCESS_KEY_ID`
-- `AWS_SECRET_ACCESS_KEY`; `AWS_SECRET_KEY` is accepted as a compatibility alias
+- `AWS_SECRET_ACCESS_KEY`
 - `AWS_SESSION_TOKEN` when temporary credentials are used
 - `AWS_REGION` or `AWS_DEFAULT_REGION`; defaults to `us-east-1` if both are
   absent

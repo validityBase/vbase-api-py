@@ -25,7 +25,3 @@ pip-compile --strip-extras --no-annotate --generate-hashes -o requirements/docs.
 pip-compile --strip-extras --no-annotate --allow-unsafe --generate-hashes -o requirements/e2e.txt requirements/e2e.in
 pip-compile --strip-extras --no-annotate --allow-unsafe --generate-hashes -o requirements/tools.txt requirements/tools.in
 ```
-
-Private helper dependencies are installed separately from
-`requirements/private.txt` with `--no-deps` after `VBASE_COMMON_REPO_READ_TOKEN`
-is exported for the VCS URL placeholder.

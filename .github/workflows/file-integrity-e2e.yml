@@ -37,17 +37,16 @@ jobs:
           python-version: "3.12"
           require-hashes: "true"
 
-      - name: Install private Python dependencies
-        env:
-          VBASE_COMMON_REPO_READ_TOKEN: ${{ secrets.VBASE_COMMON_REPO_READ_TOKEN }}
-        run: python -m pip install --no-deps -r requirements/private.txt
-
       - name: Install package
         run: python -m pip install --no-deps --no-build-isolation -e .
 
       - name: Run file-integrity E2E tests
-        uses: validityBase/vbase-github-actions/.github/actions/run-with-bitwarden-env@b100c0828c9667a6f0ff65a4f46fcf602b30d8f1
-        with:
-          bitwarden-access-token: ${{ secrets.VBASE_DJANGO_TOOLS_CYPRESS_RUNNER_STG_TOKEN }}
-          project: vbase-django-tools-cypress-runner-stg
-          command: python -m unittest discover -s tests -v
+        env:
+          VBASE_API_KEY: ${{ secrets.VBASE_API_KEY }}
+          BASE_URL: ${{ secrets.BASE_URL }}
+          S3_VALIDATION_BUCKET: ${{ secrets.S3_VALIDATION_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: python -m unittest tests.test_file_integrity_e2e -v

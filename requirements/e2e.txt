@@ -4,12 +4,6 @@
 #
 #    pip-compile --allow-unsafe --generate-hashes --no-annotate --output-file=requirements/e2e.txt --strip-extras requirements/e2e.in
 #
-bitwarden-sdk==2.1.0 \
-    --hash=sha256:2c5de50af003b7b2d16a9a690d3111480d1b1962eb25f39e416812d6d9d4e4d6 \
-    --hash=sha256:659b7e3faaab067f38556ffaaa7edf217e581047234f9a748770fa2926d2664c \
-    --hash=sha256:8374ef97e481c17a0b65e1b8d700df492cb384ff5a4888bd2c697c37457fc332 \
-    --hash=sha256:b6f6b2624e340307891edc20a2860ec0b7c2140683eec2ce2e20d1076ffe9268 \
-    --hash=sha256:cdf85d309aecf21c563c9245322d49a344135761d03cffa43b8703f509bc0df7
 boto3==1.43.49 \
     --hash=sha256:2b31ab1a0eb1cee01d0363b8ee5e68b45dff2c8f99e7b53aca11c9f7b591a794 \
     --hash=sha256:e58e0704805f720b94e40a56588eadd6da05d3693bde78b573116b11ae56710f

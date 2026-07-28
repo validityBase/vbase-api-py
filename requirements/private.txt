@@ -1,1 +1,0 @@
-git+https://${VBASE_COMMON_REPO_READ_TOKEN}@github.com/validityBase/vbase-common.git@9957845c46dee23348f1bdd67c4f554f225ff55b
