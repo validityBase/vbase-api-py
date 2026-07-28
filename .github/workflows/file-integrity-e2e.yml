@@ -40,6 +40,33 @@ jobs:
       - name: Install package
         run: python -m pip install --no-deps --no-build-isolation -e .
 
+      - name: Validate live E2E secrets
+        env:
+          VBASE_API_KEY: ${{ secrets.VBASE_API_KEY }}
+          S3_VALIDATION_BUCKET: ${{ secrets.S3_VALIDATION_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          missing=()
+          for secret_name in \
+            VBASE_API_KEY \
+            S3_VALIDATION_BUCKET \
+            AWS_ACCESS_KEY_ID \
+            AWS_SECRET_ACCESS_KEY
+          do
+            if [ -z "${!secret_name:-}" ]; then
+              missing+=("$secret_name")
+            fi
+          done
+
+          if [ "${#missing[@]}" -ne 0 ]; then
+            printf '::error::Missing live E2E secret: %s\n' "${missing[@]}"
+            exit 1
+          fi
+
       - name: Run file-integrity E2E tests
         env:
           VBASE_API_KEY: ${{ secrets.VBASE_API_KEY }}
