@@ -23,10 +23,7 @@ python -m pip install --require-hashes -r requirements/docs.txt
 sphinx-build -b markdown docs/ docs/_build/markdown
 
 # Regenerate dependency locks
-python -m pip install --require-hashes -r requirements/tools.txt
-pip-compile --strip-extras --no-annotate --generate-hashes -o requirements/docs.txt requirements/docs.in
-pip-compile --strip-extras --no-annotate --allow-unsafe --generate-hashes -o requirements/e2e.txt requirements/e2e.in
-pip-compile --strip-extras --no-annotate --allow-unsafe --generate-hashes -o requirements/tools.txt requirements/tools.in
+# See internal/specs/python-dependency-hashes.md.
 
 # Run formatting hooks when available
 pre-commit run --all-files
@@ -34,8 +31,8 @@ pre-commit run --all-files
 
 ## Code Standards
 
-- Published runtime dependencies live in `requirements.in` and are read by `pyproject.toml`.
-- Documentation, E2E, and lock-tooling inputs and generated hash-locked outputs live together under `requirements/`.
+- Dependency layout and lock policy are canonical in
+  `internal/specs/python-dependency-hashes.md`; do not duplicate them here.
 - Use Python `>=3.8` compatible syntax unless the package metadata changes.
 - Use `black` and `isort`; pre-commit configuration is in `.pre-commit-config.yaml`.
 - Do not commit secrets, tokens, generated credentials, webhook URLs, or private environment payloads.
@@ -53,5 +50,6 @@ See [internal/specs/github-actions.md](internal/specs/github-actions.md) for wor
 ## Internal Documentation
 
 - Persistent agent memory: [internal/agents/memory/MEMORY.md](internal/agents/memory/MEMORY.md)
+- Dependency hashes: [internal/specs/python-dependency-hashes.md](internal/specs/python-dependency-hashes.md)
 - Internal specs and guides: `internal/specs/`
 - Public or generated documentation: `docs/`
