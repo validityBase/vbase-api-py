@@ -4,16 +4,14 @@
 - Third-party actions are pinned by full commit SHA for reproducibility.
 - Shared vBase-owned actions and reusable workflows use `validityBase/vbase-github-actions` with reviewed release tags such as `@v1`.
 - Workflow permissions are declared explicitly and kept minimal.
-- Python installs for docs and lock verification use generated hash-locked terminal environment requirements with `require-hashes`.
 - Secrets must come from GitHub Secrets or deployment configuration, never from committed files or logs.
+- Dependency layout and lock policy are canonical in
+  `internal/specs/python-dependency-hashes.md`.
 
 ## Dependencies
 
-Published runtime dependencies live in `requirements.in` as abstract ranges and
-are read by `pyproject.toml`. Documentation publishing, live E2E tests, and
-lock tooling are terminal environments owned by this repository, so their
-generated lock files live under `requirements/` and are installed with
-`require-hashes`.
+See `internal/specs/python-dependency-hashes.md` for dependency layout, lock
+policy, and package metadata rules.
 
 Do not restore a local `.github/actions/setup-python-deps` copy. Use `validityBase/vbase-github-actions/.github/actions/setup-python-deps@v1` for requirements-file based Python dependency setup.
 
