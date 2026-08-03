@@ -47,9 +47,15 @@ CI loads credential values from GitHub Actions secrets and non-secret live test
 configuration from GitHub Actions variables so the public package repository
 keeps the live test wiring small and self-contained.
 
-Required secret for Python client API calls:
+Required GitHub Actions secrets for Python client API calls:
 
-- `VBASE_API_KEY`
+- `FILE_INTEGRITY_E2E_VBASE_API_KEY_UBUNTU`
+- `FILE_INTEGRITY_E2E_VBASE_API_KEY_MACOS`
+- `FILE_INTEGRITY_E2E_VBASE_API_KEY_WINDOWS`
+
+The workflow maps the OS-specific secret for the current matrix job into the
+test process as `VBASE_API_KEY`. Local runs may still provide `VBASE_API_KEY`
+directly.
 
 Non-secret variable for Python client API calls:
 
