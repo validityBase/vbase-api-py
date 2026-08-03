@@ -45,15 +45,20 @@ Do not restore a local `.github/actions/setup-python-deps` copy. Use `validityBa
   job.
 - Uses an OS matrix over `ubuntu-latest`, `macos-latest`, and `windows-latest`
   to cover the client-library platform matrix.
-- Runs the OS matrix with `max-parallel: 1` because each job uses the same
-  staging API key. Serial execution avoids overlapping blockchain transactions
-  from the same live account while preserving OS coverage.
+- Runs the OS matrix with `max-parallel: 1` to preserve the current sequential
+  execution behavior while keeping OS coverage.
+- Maps each OS job to a dedicated staging API key secret, then exposes that key
+  to the test process as `VBASE_API_KEY`:
+  `FILE_INTEGRITY_E2E_VBASE_API_KEY_UBUNTU`,
+  `FILE_INTEGRITY_E2E_VBASE_API_KEY_MACOS`, and
+  `FILE_INTEGRITY_E2E_VBASE_API_KEY_WINDOWS`.
 - Installs `requirements/e2e.txt` through `setup-python-deps@v1` with
   Python 3.12 and `require-hashes: "true"`, installs the package in editable
   mode, and runs `python -m unittest tests.test_file_integrity_e2e -v`.
 - Runtime app/API/S3 credentials come directly from GitHub Actions secrets:
-  `VBASE_API_KEY`, `S3_VALIDATION_BUCKET`, `AWS_ACCESS_KEY_ID`,
-  `AWS_SECRET_ACCESS_KEY`, and optional `AWS_SESSION_TOKEN`.
+  the OS-specific file-integrity API key secret, `S3_VALIDATION_BUCKET`,
+  `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and optional
+  `AWS_SESSION_TOKEN`.
 - Non-secret live E2E configuration comes from GitHub Actions variables:
   `BASE_URL` and `AWS_REGION`.
 - Stored bytes are verified by reading the returned `file_object.file_path`
