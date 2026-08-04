@@ -31,6 +31,14 @@ Do not restore a local `.github/actions/setup-python-deps` copy. Use `validityBa
 - Publishes to the central docs repository.
 - Uses `DOCS_REPO_ACCESS_TOKEN` for the central docs repository.
 
+### `.github/workflows/repo-backup.yml`
+- Runs daily at 02:17 UTC and can be triggered manually.
+- Delegates to `validityBase/vbase-github-actions/.github/workflows/repo-backup.yml@v1`.
+- Uses the reviewed moving major tag for validityBase-owned shared workflows so centrally reviewed fixes roll forward without per-repository pin updates.
+- Creates a full-history git bundle, checksum, and metadata file under the shared `github-backups` object storage prefix.
+- Passes `VBASE_COMMON_REPO_READ_TOKEN` and maps `VBASE_REPO_BACKUP_SECRETS_TOKEN` to the shared workflow's `BWS_ACCESS_TOKEN`.
+- Reads object storage credentials from the `vbase-repo-backups` Bitwarden project instead of storing provider credentials directly in GitHub Secrets.
+
 ### `.github/workflows/publish-pypi.yml`
 - Runs on published GitHub releases and manual dispatch.
 - Sets up Python 3.12 for reproducible release builds and CI parity.
