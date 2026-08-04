@@ -1,0 +1,26 @@
+name: Daily Repo Backup
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 2 * * *"  # daily 02:17 UTC
+
+concurrency:
+  group: repo-backup
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    # validityBase-owned shared workflows use the reviewed moving major tag so
+    # centrally reviewed fixes roll forward without per-repository pin updates.
+    uses: validityBase/vbase-github-actions/.github/workflows/repo-backup.yml@v1
+    with:
+      backup-prefix: github-backups
+      bundle-name: repo.bundle
+      bitwarden-project: vbase-repo-backups
+    secrets:
+      VBASE_COMMON_REPO_READ_TOKEN: ${{ secrets.VBASE_COMMON_REPO_READ_TOKEN }}
+      BWS_ACCESS_TOKEN: ${{ secrets.VBASE_REPO_BACKUP_SECRETS_TOKEN }}

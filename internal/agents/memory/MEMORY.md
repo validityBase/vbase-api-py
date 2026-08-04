@@ -9,6 +9,9 @@
 - Documentation publishing delegates to `validityBase/vbase-github-actions/.github/workflows/publish-docs.yml@v1`.
 - Python dependency setup uses `validityBase/vbase-github-actions/.github/actions/setup-python-deps@v1`; do not restore a local `.github/actions/setup-python-deps` copy.
 - PyPI publishing uses trusted publishing through OIDC with `id-token: write`; do not add static PyPI API tokens.
+- Repository backups use `.github/workflows/repo-backup.yml`, which delegates
+  to the shared `repo-backup.yml@v1` workflow and resolves generic object
+  storage credentials from the `vbase-repo-backups` Bitwarden project.
 
 ## Documentation Layout
 - `CLAUDE.md` is the root instruction entry point and should stay short.
