@@ -19,25 +19,15 @@ jobs:
       fail-fast: false
       max-parallel: 1
       matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        install_source: [source, pypi]
         include:
           - os: ubuntu-latest
             api_key_secret: FILE_INTEGRITY_E2E_VBASE_API_KEY_UBUNTU
-            install_source: source
           - os: macos-latest
             api_key_secret: FILE_INTEGRITY_E2E_VBASE_API_KEY_MACOS
-            install_source: source
           - os: windows-latest
             api_key_secret: FILE_INTEGRITY_E2E_VBASE_API_KEY_WINDOWS
-            install_source: source
-          - os: ubuntu-latest
-            api_key_secret: FILE_INTEGRITY_E2E_VBASE_API_KEY_UBUNTU
-            install_source: pypi
-          - os: macos-latest
-            api_key_secret: FILE_INTEGRITY_E2E_VBASE_API_KEY_MACOS
-            install_source: pypi
-          - os: windows-latest
-            api_key_secret: FILE_INTEGRITY_E2E_VBASE_API_KEY_WINDOWS
-            install_source: pypi
 
     steps:
       - name: Checkout repository
