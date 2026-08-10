@@ -1,1 +1,2 @@
 requests>=2.7.0,<3
+tenacity>=8.2.3,<10

@@ -63,4 +63,31 @@ for collection in collections:
     print(f"{collection.name}: {collection.cid}")
 ```
 
+## Retries
+
+The client retries transient transport failures and HTTP `408`, `429`, `500`,
+`502`, `503`, and `504` responses for read operations and retry-safe writes.
+The default policy makes three attempts with linear delays of one and two
+seconds.
+
+```python
+from vbase_api import RetryConfig, VBaseAPIClient
+
+client = VBaseAPIClient(
+    api_key="your-bearer-token",
+    retry_config=RetryConfig(
+        max_attempts=5,
+        initial_delay=0.5,
+        delay_increment=0.5,
+    ),
+)
+```
+
+Set `RetryConfig(enabled=False)` or `max_attempts=1` to disable retries. Stamp
+creation is retried only when `idempotent=True`. Non-idempotent stamps are sent
+once because retrying an uncertain write can create a duplicate. A positive
+stamp idempotency window must also cover the configured timeout and retry
+delays. File uploads are retried only when the input is a path or a seekable
+stream.
+
 

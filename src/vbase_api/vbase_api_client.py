@@ -9,18 +9,25 @@ Swagger: https://app.vbase.com/swagger/
 """
 
 import json
-import requests
 from pathlib import Path
-from typing import Dict, List, Optional, Any, BinaryIO, Union
+from typing import Any, BinaryIO, Callable, Dict, List, Optional, TypeVar, Union
+
+import requests
+from tenacity import Retrying, retry_if_exception_type, stop_after_attempt
+from tenacity.wait import wait_incrementing
 
 from ._version import __version__
+from .retry import RetryConfig
 from .vbase_api_models import (
-    Collection,
-    StampCreatedResponse,
-    IdempotentStampResponse,
-    VerificationResult,
     AccountSettings,
+    Collection,
+    IdempotentStampResponse,
+    StampCreatedResponse,
+    VerificationResult,
 )
+
+ResultType = TypeVar("ResultType")
+
 
 class VBaseAPIError(Exception):
     """Base exception for vBase API errors."""
@@ -36,6 +43,16 @@ class VBaseAPIError(Exception):
             error_msg = f"[{self.status_code}] {error_msg}"
         return error_msg
 
+
+class _RetryableHTTPError(Exception):
+    """Internal exception used to let Tenacity retry transient responses."""
+
+    def __init__(self, message: str, status_code: int):
+        self.message = message
+        self.status_code = status_code
+        super().__init__(message)
+
+
 class VBaseAPIClient:
     """
     Client for interacting with the vBase API.
@@ -47,6 +64,7 @@ class VBaseAPIClient:
         api_key: Bearer token for API authentication
         base_url: Base URL of the vBase API (default: https://app.vbase.com)
         timeout: Request timeout in seconds (default: 30)
+        retry_config: Retry behavior for retry-safe API operations
 
     Example:
         .. code-block:: python
@@ -63,67 +81,167 @@ class VBaseAPIClient:
         self,
         api_key: str,
         base_url: str = DEFAULT_BASE_URL,
-        timeout: int = 30
+        timeout: int = 30,
+        retry_config: Optional[RetryConfig] = None,
     ):
         """Initialize the vBase API client."""
         self.api_key = api_key
-        self.base_url = base_url.rstrip('/')
+        self.base_url = base_url.rstrip("/")
         self.timeout = timeout
+        self.retry_config = retry_config or RetryConfig()
         self.session = requests.Session()
-        self.session.headers.update({
-            'Authorization': f'Bearer {api_key}',
-            'User-Agent': f'vBase API Python Client v{__version__}',
-        })
+        self.session.headers.update(
+            {
+                "Authorization": f"Bearer {api_key}",
+                "User-Agent": f"vBase API Python Client v{__version__}",
+            }
+        )
 
     def _get_url(self, endpoint: str) -> str:
         """Construct the full API URL for an endpoint."""
-        endpoint = endpoint.lstrip('/')
+        endpoint = endpoint.lstrip("/")
         return f"{self.base_url}/api/{self.API_VERSION}/{endpoint}"
 
+    @staticmethod
+    def _get_response_error(response: requests.Response) -> str:
+        """Extract a useful API error message from an HTTP response."""
+        try:
+            error_data = response.json()
+        except (ValueError, json.JSONDecodeError):
+            return response.reason or f"HTTP {response.status_code}"
+
+        if isinstance(error_data, dict):
+            return str(error_data.get("error") or response.reason or error_data)
+        return response.reason or str(error_data)
+
     def _handle_response(self, response: requests.Response) -> Any:
-        """Handle API response and raise appropriate exceptions."""
+        """Handle an API response and raise the public client exception."""
         try:
             response.raise_for_status()
-            return response.json()
-        except requests.exceptions.HTTPError as e:
-            try:
-                error_data = response.json()
-                error_msg = error_data.get('error', str(e))
-                raise VBaseAPIError(error_msg, response.status_code) from e
-            except (ValueError, json.JSONDecodeError) as exc:
-                raise VBaseAPIError(str(e), response.status_code) from exc
-        except requests.exceptions.RequestException as e:
-            raise VBaseAPIError(f"Request failed: {str(e)}") from e
+        except requests.exceptions.HTTPError as exc:
+            raise VBaseAPIError(
+                self._get_response_error(response), response.status_code
+            ) from exc
+        return response.json()
 
-    def _prepare_file_upload(self, file: Union[str, Path, BinaryIO]) -> tuple:
+    def _request_once(
+        self, method: str, endpoint: str, **kwargs: Any
+    ) -> requests.Response:
+        """Send one HTTP request and classify transient HTTP responses."""
+        response = self.session.request(
+            method,
+            self._get_url(endpoint),
+            timeout=self.timeout,
+            **kwargs,
+        )
+        if response.status_code in self.retry_config.retry_status_codes:
+            error = _RetryableHTTPError(
+                self._get_response_error(response), response.status_code
+            )
+            response.close()
+            raise error
+        return response
+
+    def _execute_with_retry(
+        self,
+        operation: Callable[[], ResultType],
+        *,
+        retry_safe: bool,
+    ) -> ResultType:
+        """Execute an operation with the configured linear retry policy."""
+        should_retry = (
+            retry_safe
+            and self.retry_config.enabled
+            and self.retry_config.max_attempts > 1
+        )
+
+        try:
+            if not should_retry:
+                return operation()
+
+            retrying = Retrying(
+                retry=retry_if_exception_type(
+                    (
+                        requests.exceptions.ConnectionError,
+                        requests.exceptions.Timeout,
+                        _RetryableHTTPError,
+                    )
+                ),
+                wait=wait_incrementing(
+                    start=self.retry_config.initial_delay,
+                    increment=self.retry_config.delay_increment,
+                    max=self.retry_config.max_delay,
+                ),
+                stop=stop_after_attempt(self.retry_config.max_attempts),
+                reraise=True,
+            )
+            return retrying(operation)
+        except _RetryableHTTPError as exc:
+            raise VBaseAPIError(exc.message, exc.status_code) from exc
+        except requests.exceptions.RequestException as exc:
+            raise VBaseAPIError(f"Request failed: {str(exc)}") from exc
+
+    def _request(
+        self,
+        method: str,
+        endpoint: str,
+        *,
+        retry_safe: bool,
+        **kwargs: Any,
+    ) -> requests.Response:
+        """Send a request, applying retries only when replay is safe."""
+        return self._execute_with_retry(
+            lambda: self._request_once(method, endpoint, **kwargs),
+            retry_safe=retry_safe,
+        )
+
+    def _maximum_retry_elapsed(self) -> float:
+        """Return the worst-case seconds before the final request attempt."""
+        elapsed = 0.0
+        delay = self.retry_config.initial_delay
+        for _ in range(self.retry_config.max_attempts - 1):
+            elapsed += float(self.timeout)
+            elapsed += min(delay, self.retry_config.max_delay)
+            delay += self.retry_config.delay_increment
+        return elapsed
+
+    @staticmethod
+    def _get_stream_position(file: Union[str, Path, BinaryIO]) -> Optional[int]:
+        """Return the current position when a caller-owned stream is replayable."""
+        if isinstance(file, (str, Path)):
+            return 0
+        try:
+            if file.seekable():
+                return file.tell()
+        except (AttributeError, OSError):
+            pass
+        return None
+
+    def _prepare_file_upload(
+        self,
+        file: Union[str, Path, BinaryIO],
+        stream_position: Optional[int] = None,
+    ) -> tuple:
         """
         Prepare a file for upload.
-        
+
         Args:
             file: File path (string or Path) or file-like object
-            
+
         Returns:
             Tuple of (filename, file_object, content_type) suitable for requests files parameter
         """
         if isinstance(file, (str, Path)):
             file_path = Path(file)
-            return (file_path.name, open(file_path, 'rb'), 'application/octet-stream')
-        else:
-            # Assume it's a file-like object
-            return file
+            file_object = open(file_path, "rb")
+            return (
+                (file_path.name, file_object, "application/octet-stream"),
+                file_object,
+            )
 
-    def _close_files(self, files: Dict[str, Any]) -> None:
-        """
-        Close any opened files in the files dictionary.
-        
-        Args:
-            files: Dictionary of file tuples from requests
-        """
-        for file_tuple in files.values():
-            if hasattr(file_tuple, '__iter__') and len(file_tuple) > 1:
-                file_obj = file_tuple[1]
-                if hasattr(file_obj, 'close'):
-                    file_obj.close()
+        if stream_position is not None:
+            file.seek(stream_position)
+        return file, None
 
     # ========================================================================
     # Collections API
@@ -156,24 +274,42 @@ class VBaseAPIClient:
         """
         params = {}
         if user_address is not None:
-            params['user_address'] = user_address
+            params["user_address"] = user_address
         if is_pinned is not None:
-            params['is_pinned'] = is_pinned
+            params["is_pinned"] = is_pinned
 
-        response = self.session.get(
-            self._get_url('collections'),
+        response = self._request(
+            "GET",
+            "collections",
+            retry_safe=True,
             params=params,
-            timeout=self.timeout
         )
         data = self._handle_response(response)
         return [Collection.from_dict(item) for item in data]
 
-    def create_collection(
+    def _find_matching_collection(
         self,
+        *,
         name: str,
         description: str,
-        cid: str = None,
-        is_pinned: bool = True
+        cid: Optional[str],
+        is_pinned: bool,
+    ) -> Optional[Collection]:
+        """Find a collection matching a create request after an uncertain result."""
+        for collection in self.get_collections():
+            if collection.name != name:
+                continue
+            if cid is not None and collection.cid.lower() != cid.lower():
+                continue
+            if collection.description != description:
+                continue
+            if collection.is_pinned != is_pinned:
+                continue
+            return collection
+        return None
+
+    def create_collection(
+        self, name: str, description: str, cid: str = None, is_pinned: bool = True
     ) -> Collection:
         """
         Create a new user collection.
@@ -202,19 +338,45 @@ class VBaseAPIClient:
                 print(f"Created: {collection.name}")
         """
         data = {
-            'name': name,
-            'cid': cid,
-            'description': description,
-            'is_pinned': is_pinned
+            "name": name,
+            "cid": cid,
+            "description": description,
+            "is_pinned": is_pinned,
         }
 
-        response = self.session.post(
-            self._get_url('collections'),
-            json=data,
-            timeout=self.timeout
-        )
-        result = self._handle_response(response)
-        return Collection.from_dict(result)
+        request_attempts = 0
+
+        def create_attempt() -> Collection:
+            nonlocal request_attempts
+
+            if request_attempts:
+                existing = self._find_matching_collection(
+                    name=name,
+                    description=description,
+                    cid=cid,
+                    is_pinned=is_pinned,
+                )
+                if existing is not None:
+                    return existing
+
+            request_attempts += 1
+            response = self._request_once("POST", "collections", json=data)
+            result = self._handle_response(response)
+            return Collection.from_dict(result)
+
+        try:
+            return self._execute_with_retry(create_attempt, retry_safe=True)
+        except VBaseAPIError as exc:
+            if exc.status_code == 409 and request_attempts > 1:
+                existing = self._find_matching_collection(
+                    name=name,
+                    description=description,
+                    cid=cid,
+                    is_pinned=is_pinned,
+                )
+                if existing is not None:
+                    return existing
+            raise
 
     # ========================================================================
     # Stamps API
@@ -230,7 +392,7 @@ class VBaseAPIClient:
         collection_name: Optional[str] = None,
         store_stamped_file: bool = True,
         idempotent: bool = True,
-        idempotency_window: int = 3600
+        idempotency_window: int = 3600,
     ) -> Union[StampCreatedResponse, IdempotentStampResponse]:
         """
         Stamp a file, data, or CID.
@@ -250,13 +412,19 @@ class VBaseAPIClient:
             idempotent: Enable idempotency (default: True)
             idempotency_window: Idempotency window in seconds (default: 3600)
 
+        Retries:
+            Requests are retried only when ``idempotent`` is true and any file
+            input can be replayed. A positive idempotency window must cover the
+            worst-case retry duration. Non-idempotent stamps are always sent
+            once.
+
         Returns:
             StampCreatedResponse (201 status) or IdempotentStampResponse (200 status)
 
         Raises:
             VBaseAPIError: If the request fails
             ValueError: If invalid parameters are provided
-        
+
         Example:
             .. code-block:: python
 
@@ -273,60 +441,73 @@ class VBaseAPIClient:
                 stamp = client.create_stamp(data_cid="Qm...")
         """
         if not any([file, data, data_cid]):
-            raise ValueError("At least one of 'file', 'data', or 'data_cid' must be provided")
+            raise ValueError(
+                "At least one of 'file', 'data', or 'data_cid' must be provided"
+            )
 
         if collection_cid and collection_name:
-            raise ValueError("Only one of 'collection_cid' or 'collection_name' can be specified")
+            raise ValueError(
+                "Only one of 'collection_cid' or 'collection_name' can be specified"
+            )
 
         form_data = {
-            'store_stamped_file': store_stamped_file,
-            'idempotent': idempotent,
-            'idempotency_window': idempotency_window
+            "store_stamped_file": store_stamped_file,
+            "idempotent": idempotent,
+            "idempotency_window": idempotency_window,
         }
 
         if data_cid:
-            form_data['data_cid'] = data_cid
+            form_data["data_cid"] = data_cid
         if collection_cid:
-            form_data['collection_cid'] = collection_cid
+            form_data["collection_cid"] = collection_cid
         if collection_name:
-            form_data['collection_name'] = collection_name
+            form_data["collection_name"] = collection_name
         if file_name:
-            form_data['file_name'] = file_name
-
-        files = {}
-
-        # Handle file parameter
-        if file:
-            files['file'] = self._prepare_file_upload(file)
+            form_data["file_name"] = file_name
 
         # Handle data parameter
         if data:
             if isinstance(data, dict):
-                form_data['data'] = json.dumps(data)
+                form_data["data"] = json.dumps(data)
             else:
-                form_data['data'] = data
+                form_data["data"] = data
 
-        try:
-            response = self.session.post(
-                self._get_url('stamps'),
-                data=form_data,
-                files=files if files else None,
-                timeout=self.timeout
-            )
-            result = self._handle_response(response)
+        stream_position = self._get_stream_position(file) if file else None
+        replayable_input = not file or stream_position is not None
+        retry_window_is_safe = (
+            idempotency_window <= 0
+            or idempotency_window > self._maximum_retry_elapsed()
+        )
+        retry_safe = idempotent and replayable_input and retry_window_is_safe
 
-            # Return appropriate response type based on status code
-            if response.status_code == 200:
-                return IdempotentStampResponse.from_dict(result)
-            else:
+        def stamp_attempt() -> Union[StampCreatedResponse, IdempotentStampResponse]:
+            files: Dict[str, Any] = {}
+            opened_file = None
+            try:
+                if file:
+                    files["file"], opened_file = self._prepare_file_upload(
+                        file, stream_position
+                    )
+
+                response = self._request_once(
+                    "POST",
+                    "stamps",
+                    data=form_data,
+                    files=files if files else None,
+                )
+                result = self._handle_response(response)
+
+                if response.status_code == 200:
+                    return IdempotentStampResponse.from_dict(result)
                 return StampCreatedResponse.from_dict(result)
-        finally:
-            self._close_files(files)
+            finally:
+                if opened_file is not None:
+                    opened_file.close()
+
+        return self._execute_with_retry(stamp_attempt, retry_safe=retry_safe)
 
     def upload_stamped_file(
-        self,
-        collection_name: str,
-        file: Union[str, Path, BinaryIO]
+        self, collection_name: str, file: Union[str, Path, BinaryIO]
     ) -> StampCreatedResponse:
         """
         Upload a file that has been previously stamped.
@@ -337,6 +518,10 @@ class VBaseAPIClient:
         Args:
             collection_name: Collection name for blockchain verification (case-insensitive)
             file: Previously stamped file to be uploaded (path or file-like object)
+
+        Retries:
+            Paths and seekable streams are replayed with the configured retry
+            policy. Non-seekable streams are sent once.
 
         Returns:
             StampCreatedResponse with commitment receipt and file object
@@ -353,30 +538,35 @@ class VBaseAPIClient:
                 )
                 print(f"Uploaded: {result.file_object.file_name}")
         """
-        form_data = {
-            'collection_name': collection_name
-        }
+        form_data = {"collection_name": collection_name}
 
-        files = {}
+        stream_position = self._get_stream_position(file)
 
-        files['file'] = self._prepare_file_upload(file)
+        def upload_attempt() -> StampCreatedResponse:
+            opened_file = None
+            try:
+                prepared_file, opened_file = self._prepare_file_upload(
+                    file, stream_position
+                )
+                response = self._request_once(
+                    "POST",
+                    "stamps/upload-stamped-file",
+                    data=form_data,
+                    files={"file": prepared_file},
+                )
+                result = self._handle_response(response)
+                return StampCreatedResponse.from_dict(result)
+            finally:
+                if opened_file is not None:
+                    opened_file.close()
 
-        try:
-            response = self.session.post(
-                self._get_url('stamps/upload-stamped-file'),
-                data=form_data,
-                files=files,
-                timeout=self.timeout
-            )
-            result = self._handle_response(response)
-            return StampCreatedResponse.from_dict(result)
-        finally:
-            self._close_files(files)
+        return self._execute_with_retry(
+            upload_attempt,
+            retry_safe=stream_position is not None,
+        )
 
     def verify_stamps(
-        self,
-        cids: List[str],
-        filter_by_user: bool = False
+        self, cids: List[str], filter_by_user: bool = False
     ) -> VerificationResult:
         """
         Verify one or more Content IDs (CIDs).
@@ -405,15 +595,13 @@ class VBaseAPIClient:
                 for stamp in result.stamp_list:
                     print(f"Found stamp at {stamp.timestamp}")
         """
-        data = {
-            'cids': cids,
-            'filter_by_user': filter_by_user
-        }
+        data = {"cids": cids, "filter_by_user": filter_by_user}
 
-        response = self.session.post(
-            self._get_url('stamps/verify'),
+        response = self._request(
+            "POST",
+            "stamps/verify",
+            retry_safe=True,
             json=data,
-            timeout=self.timeout
         )
         result = self._handle_response(response)
         return VerificationResult.from_dict(result)
@@ -438,9 +626,10 @@ class VBaseAPIClient:
                 user = client.get_current_user()
                 print(f"User email: {user.email}")
         """
-        response = self.session.get(
-            self._get_url('users/me'),
-            timeout=self.timeout
+        response = self._request(
+            "GET",
+            "users/me",
+            retry_safe=True,
         )
         result = self._handle_response(response)
         return AccountSettings.from_dict(result)
@@ -451,22 +640,23 @@ class VBaseAPIClient:
 
         Args:
             user_address: The user's blockchain address
-        
+
         Returns:
             AccountSettings for the specified user
-        
+
         Raises:
             VBaseAPIError: If the request fails or user not found
-        
+
         Example:
             .. code-block:: python
 
                 user = client.get_user("0x...")
                 print(f"User name: {user.name}")
         """
-        response = self.session.get(
-            self._get_url(f'users/{user_address}'),
-            timeout=self.timeout
+        response = self._request(
+            "GET",
+            f"users/{user_address}",
+            retry_safe=True,
         )
         result = self._handle_response(response)
         return AccountSettings.from_dict(result)
@@ -488,7 +678,8 @@ class VBaseAPIClient:
 def create_client(
     api_key: str,
     base_url: str = VBaseAPIClient.DEFAULT_BASE_URL,
-    timeout: int = 30
+    timeout: int = 30,
+    retry_config: Optional[RetryConfig] = None,
 ) -> VBaseAPIClient:
     """
     Create a vBase API client.
@@ -497,6 +688,7 @@ def create_client(
         api_key: Bearer token for API authentication
         base_url: Base URL of the vBase API
         timeout: Request timeout in seconds
+        retry_config: Retry behavior for retry-safe API operations
 
     Returns:
         Configured VBaseAPIClient instance
@@ -507,4 +699,9 @@ def create_client(
             client = create_client(api_key="your-bearer-token")
             collections = client.get_collections()
     """
-    return VBaseAPIClient(api_key=api_key, base_url=base_url, timeout=timeout)
+    return VBaseAPIClient(
+        api_key=api_key,
+        base_url=base_url,
+        timeout=timeout,
+        retry_config=retry_config,
+    )
