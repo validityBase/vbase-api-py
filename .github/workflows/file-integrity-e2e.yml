@@ -21,6 +21,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         install_source: [source, pypi]
+        # GitHub Actions augments each base os/install_source combination with
+        # the matching os-specific api_key_secret instead of adding extra jobs.
         include:
           - os: ubuntu-latest
             api_key_secret: FILE_INTEGRITY_E2E_VBASE_API_KEY_UBUNTU
