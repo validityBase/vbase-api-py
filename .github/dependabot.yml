@@ -1,8 +1,9 @@
+# Generated from validityBase/github-configuration templates.
+# Do not edit rendered files manually; update templates/ and config/ instead.
 version: 2
 updates:
   - package-ecosystem: "pip"
-    # Dependabot can scan the pip-compile layout when it sees both
-    # requirements/*.in inputs and requirements/*.txt outputs.
+    # Dependabot scans pip requirement files in this directory.
     directory: "/requirements"
     schedule:
       interval: "daily"
@@ -18,3 +19,8 @@ updates:
         applies-to: "security-updates"
         patterns:
           - "*"
+    ignore:
+      - dependency-name: "pip"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
