@@ -48,6 +48,8 @@ jobs:
 
       - name: Install package from PyPI
         if: ${{ matrix.install_source == 'pypi' }}
+        # Intentionally resolve dependencies from PyPI to test the published
+        # package the same way users install it.
         run: python -m pip install --upgrade vbase-api
 
       - name: Validate live E2E secrets
