@@ -51,18 +51,25 @@ Do not restore a local `.github/actions/setup-python-deps` copy. Use `validityBa
 - Skips forked pull requests because the live E2E job requires repository
   secrets. Same-repository pull requests, pushes, and manual runs execute the
   job.
-- Uses an OS matrix over `ubuntu-latest`, `macos-latest`, and `windows-latest`
-  to cover the client-library platform matrix.
-- Runs the OS matrix with `max-parallel: 1` to preserve the current sequential
-  execution behavior while keeping OS coverage.
+- Uses a matrix over `ubuntu-latest`, `macos-latest`, and `windows-latest`, plus
+  `source` and `pypi` install sources, to cover the client-library platform
+  matrix and the latest published PyPI package.
+- Runs the matrix with `max-parallel: 1` to preserve the current sequential
+  execution behavior while keeping platform and package-source coverage.
 - Maps each OS job to a dedicated staging API key secret, then exposes that key
   to the test process as `VBASE_API_KEY`:
   `FILE_INTEGRITY_E2E_VBASE_API_KEY_UBUNTU`,
   `FILE_INTEGRITY_E2E_VBASE_API_KEY_MACOS`, and
   `FILE_INTEGRITY_E2E_VBASE_API_KEY_WINDOWS`.
 - Installs `requirements/e2e.txt` through `setup-python-deps@v1` with
-  Python 3.12 and `require-hashes: "true"`, installs the package in editable
-  mode, and runs `python -m unittest tests.test_file_integrity_e2e -v`.
+  Python 3.12 and `require-hashes: "true"`, then either installs the checkout in
+  editable mode (`install_source=source`) or installs the latest published
+  `vbase-api` package from PyPI (`install_source=pypi`), and runs
+  `python -m unittest tests.test_file_integrity_e2e -v`.
+- Exposes the selected install source to the tests as
+  `VBASE_API_PACKAGE_SOURCE`; the tests log the imported package version/path
+  and assert that the PyPI matrix leg does not import `vbase_api` from the
+  repository checkout.
 - Runtime app/API/S3 credentials come directly from GitHub Actions secrets:
   the OS-specific file-integrity API key secret, `S3_VALIDATION_BUCKET`,
   `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and optional
