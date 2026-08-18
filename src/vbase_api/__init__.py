@@ -1,4 +1,4 @@
-# src/simplemath/__init__.py
+# src/vbase_api/__init__.py
 
 from ._version import __version__
 from .retry import RetryConfig

@@ -227,9 +227,12 @@ class VBaseAPIClient:
 
         Args:
             file: File path (string or Path) or file-like object
+            stream_position: Position to restore before replaying a caller-owned stream
 
         Returns:
-            Tuple of (filename, file_object, content_type) suitable for requests files parameter
+            Tuple of (prepared_file, opened_file). prepared_file is suitable for
+            the requests files parameter; opened_file is the client-owned file
+            handle to close, or None for caller-owned streams.
         """
         if isinstance(file, (str, Path)):
             file_path = Path(file)
