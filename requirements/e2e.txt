@@ -4,9 +4,9 @@
 #
 #    pip-compile --allow-unsafe --generate-hashes --no-annotate --output-file=requirements/e2e.txt --strip-extras requirements/e2e.in
 #
-boto3==1.43.71 \
-    --hash=sha256:3bb46661dc33121e56e3706753069d18f8dbcb644599cf098206546338602e16 \
-    --hash=sha256:e3eddb6346ee23c895dd98e5c2cfc72cb5e5ed111aa6d4331f9e903a3e3bf4ee
+boto3==1.43.72 \
+    --hash=sha256:6280ce03cc85e9110fd9fb7e2fbf11eae0b1177cb041a0d69aa88edc9d178cf9 \
+    --hash=sha256:f1bbbad5ed8d8a8c64edb0cd092dc443c95a85623b2ac88b6f6d633717605f00
 botocore==1.43.72 \
     --hash=sha256:1b878c69081e8e9d55aa4c0d85683e7b07f0e274a5554662f9507a46641be3d2 \
     --hash=sha256:de5a1bcf8d7602c6cefc15016f15dad82981e339192531f31fa9483e11feea47
