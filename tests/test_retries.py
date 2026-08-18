@@ -108,13 +108,15 @@ class VBaseAPIClientRetryTests(unittest.TestCase):
         self.assertEqual(self.client.session.request.call_count, 2)
         self.assertEqual(self.client.session.request.call_args.args[0], "POST")
 
-    def test_idempotent_stamp_retries_transient_failure(self):
+    def test_unlimited_window_idempotent_stamp_retries_transient_failure(self):
         self.client.session.request.side_effect = [
             make_response(503, {"error": "temporarily unavailable"}),
             make_response(200, {"commitment_receipt": receipt_payload()}),
         ]
 
-        result = self.client.create_stamp(data="payload", idempotent=True)
+        result = self.client.create_stamp(
+            data="payload", idempotent=True, idempotency_window=0
+        )
 
         self.assertEqual(result.commitment_receipt.object_cid, "0xobject")
         self.assertEqual(self.client.session.request.call_count, 2)
@@ -130,18 +132,14 @@ class VBaseAPIClientRetryTests(unittest.TestCase):
 
         self.assertEqual(self.client.session.request.call_count, 1)
 
-    def test_stamp_with_short_idempotency_window_is_not_retried(self):
+    def test_default_finite_window_stamp_is_not_retried(self):
         self.client.session.request.side_effect = [
             requests.exceptions.ConnectionError("connection reset"),
             make_response(200, {"commitment_receipt": receipt_payload()}),
         ]
 
         with self.assertRaises(VBaseAPIError):
-            self.client.create_stamp(
-                data="payload",
-                idempotent=True,
-                idempotency_window=1,
-            )
+            self.client.create_stamp(data="payload", idempotent=True)
 
         self.assertEqual(self.client.session.request.call_count, 1)
 

@@ -20,11 +20,12 @@ preserving the API operation's state-change semantics.
 - `get_collections`, `get_current_user`, and `get_user` are retry-safe reads.
 - `verify_stamps` is a retry-safe read even though its transport method is
   `POST`.
-- `create_stamp` is retried only when `idempotent=True`.
-- A positive stamp idempotency window must exceed the worst-case time before
-  the final attempt, including request timeouts and backoff. A non-positive
-  window uses the server's unlimited matching behavior. Calls with a shorter
-  window are sent once.
+- `create_stamp` is retried only when `idempotent=True` and
+  `idempotency_window <= 0`, which uses the server's unlimited matching
+  behavior.
+- Stamps with a positive, finite idempotency window are sent once. Requests
+  timeouts are not end-to-end deadlines, so the client cannot guarantee that a
+  retry would reach the server before a finite window expires.
 - `create_stamp(idempotent=False)` is sent once because the current API has no
   request identity that can distinguish a retry from a second intended stamp.
 - `create_collection` checks for a collection matching the requested name,
@@ -45,6 +46,6 @@ Client errors such as HTTP `400`, `401`, `403`, `404`, and ordinary `409`
 responses are returned immediately. Response parsing and model validation
 errors are also not retried.
 
-Supporting guaranteed retries for non-idempotent stamps requires a separate
-server contract, such as a persisted request idempotency key. That behavior is
-outside this client-only policy.
+Supporting guaranteed retries for non-idempotent or finite-window stamps
+requires a separate server contract, such as a persisted request idempotency
+key. That behavior is outside this client-only policy.

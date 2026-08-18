@@ -84,10 +84,8 @@ client = VBaseAPIClient(
 ```
 
 Set `RetryConfig(enabled=False)` or `max_attempts=1` to disable retries. Stamp
-creation is retried only when `idempotent=True`. Non-idempotent stamps are sent
-once because retrying an uncertain write can create a duplicate. A positive
-stamp idempotency window must also cover the configured timeout and retry
-delays. File uploads are retried only when the input is a path or a seekable
-stream.
-
-
+creation is retried only when `idempotent=True` and `idempotency_window <= 0`,
+which enables the server's unlimited idempotency matching. Non-idempotent and
+finite-window stamps are sent once because retrying an uncertain write can
+create a duplicate. File uploads are retried only when the input is a path or a
+seekable stream.

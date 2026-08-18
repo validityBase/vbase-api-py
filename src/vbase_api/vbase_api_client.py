@@ -195,16 +195,6 @@ class VBaseAPIClient:
             retry_safe=retry_safe,
         )
 
-    def _maximum_retry_elapsed(self) -> float:
-        """Return the worst-case seconds before the final request attempt."""
-        elapsed = 0.0
-        delay = self.retry_config.initial_delay
-        for _ in range(self.retry_config.max_attempts - 1):
-            elapsed += float(self.timeout)
-            elapsed += min(delay, self.retry_config.max_delay)
-            delay += self.retry_config.delay_increment
-        return elapsed
-
     @staticmethod
     def _get_stream_position(file: Union[str, Path, BinaryIO]) -> Optional[int]:
         """Return the current position when a caller-owned stream is replayable."""
@@ -416,10 +406,10 @@ class VBaseAPIClient:
             idempotency_window: Idempotency window in seconds (default: 3600)
 
         Retries:
-            Requests are retried only when ``idempotent`` is true and any file
-            input can be replayed. A positive idempotency window must cover the
-            worst-case retry duration. Non-idempotent stamps are always sent
-            once.
+            Requests are retried only when ``idempotent`` is true, the
+            idempotency window is non-positive (unlimited), and any file input
+            can be replayed. Finite-window and non-idempotent stamps are always
+            sent once.
 
         Returns:
             StampCreatedResponse (201 status) or IdempotentStampResponse (200 status)
@@ -477,11 +467,7 @@ class VBaseAPIClient:
 
         stream_position = self._get_stream_position(file) if file else None
         replayable_input = not file or stream_position is not None
-        retry_window_is_safe = (
-            idempotency_window <= 0
-            or idempotency_window > self._maximum_retry_elapsed()
-        )
-        retry_safe = idempotent and replayable_input and retry_window_is_safe
+        retry_safe = idempotent and idempotency_window <= 0 and replayable_input
 
         def stamp_attempt() -> Union[StampCreatedResponse, IdempotentStampResponse]:
             files: Dict[str, Any] = {}
