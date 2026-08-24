@@ -1,5 +1,5 @@
-# Generated from validityBase/github-configuration templates.
-# Do not edit rendered files manually; update the source template in validityBase/github-configuration.
+# Generated from validityBase/vbase-github-internal templates.
+# Do not edit rendered files manually; update the source template in validityBase/vbase-github-internal.
 version: 2
 updates:
   - package-ecosystem: "pip"
