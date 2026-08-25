@@ -420,7 +420,7 @@ class VBaseAPIClient:
             Requests are retried only when ``idempotent`` is true, the
             idempotency window is non-positive (unlimited) or greater than ten
             seconds, and any file input can be replayed. Finite-window retries
-            stop before the next delay would exceed the window.
+            stop before the next delay would reach or exceed the window.
 
         Returns:
             StampCreatedResponse (201 status) or IdempotentStampResponse (200 status)
