@@ -8,7 +8,7 @@ preserving the API operation's state-change semantics.
 ## Default Policy
 
 - Three attempts in total.
-- Linear waits of one second before attempt two and two seconds before attempt
+- Linear waits of two seconds before attempt two and four seconds before attempt
   three.
 - Retry `requests` connection and timeout failures.
 - Retry HTTP `408`, `429`, `500`, `502`, `503`, and `504`.

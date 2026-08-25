@@ -12,8 +12,8 @@ class RetryConfig:
 
     enabled: bool = True
     max_attempts: int = 3
-    initial_delay: float = 1.0
-    delay_increment: float = 1.0
+    initial_delay: float = 2.0
+    delay_increment: float = 2.0
     max_delay: float = 30.0
     retry_status_codes: Tuple[int, ...] = DEFAULT_RETRY_STATUS_CODES
 

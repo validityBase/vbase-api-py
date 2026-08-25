@@ -67,7 +67,7 @@ for collection in collections:
 
 The client retries transient transport failures and HTTP `408`, `429`, `500`,
 `502`, `503`, and `504` responses for read operations and retry-safe writes.
-The default policy makes three attempts with linear delays of one and two
+The default policy makes three attempts with linear delays of two and four
 seconds.
 
 ```python
@@ -77,8 +77,8 @@ client = VBaseAPIClient(
     api_key="your-bearer-token",
     retry_config=RetryConfig(
         max_attempts=5,
-        initial_delay=0.5,
-        delay_increment=0.5,
+        initial_delay=2,
+        delay_increment=2,
     ),
 )
 ```

@@ -48,6 +48,12 @@ def receipt_payload():
 
 
 class RetryConfigTests(unittest.TestCase):
+    def test_uses_two_second_linear_backoff_defaults(self):
+        config = RetryConfig()
+
+        self.assertEqual(config.initial_delay, 2.0)
+        self.assertEqual(config.delay_increment, 2.0)
+
     def test_rejects_invalid_attempt_count(self):
         with self.assertRaisesRegex(ValueError, "max_attempts"):
             RetryConfig(max_attempts=0)
