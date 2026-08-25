@@ -132,16 +132,53 @@ class VBaseAPIClientRetryTests(unittest.TestCase):
 
         self.assertEqual(self.client.session.request.call_count, 1)
 
-    def test_default_finite_window_stamp_is_not_retried(self):
+    def test_default_finite_window_stamp_retries_transient_failure(self):
+        self.client.session.request.side_effect = [
+            requests.exceptions.ConnectionError("connection reset"),
+            make_response(200, {"commitment_receipt": receipt_payload()}),
+        ]
+
+        result = self.client.create_stamp(data="payload", idempotent=True)
+
+        self.assertEqual(result.commitment_receipt.object_cid, "0xobject")
+        self.assertEqual(self.client.session.request.call_count, 2)
+
+    def test_small_finite_window_stamp_is_not_retried(self):
         self.client.session.request.side_effect = [
             requests.exceptions.ConnectionError("connection reset"),
             make_response(200, {"commitment_receipt": receipt_payload()}),
         ]
 
         with self.assertRaises(VBaseAPIError):
-            self.client.create_stamp(data="payload", idempotent=True)
+            self.client.create_stamp(
+                data="payload", idempotent=True, idempotency_window=10
+            )
 
         self.assertEqual(self.client.session.request.call_count, 1)
+
+    def test_finite_window_stops_before_delay_would_exceed_window(self):
+        client = VBaseAPIClient(
+            api_key="test-token",
+            base_url="https://example.test",
+            retry_config=RetryConfig(
+                max_attempts=3,
+                initial_delay=12,
+                delay_increment=0,
+                max_delay=12,
+            ),
+        )
+        client.session.request = Mock(
+            side_effect=[
+                requests.exceptions.ConnectionError("connection reset"),
+                make_response(200, {"commitment_receipt": receipt_payload()}),
+            ]
+        )
+        self.addCleanup(client.close)
+
+        with self.assertRaises(VBaseAPIError):
+            client.create_stamp(data="payload", idempotent=True, idempotency_window=11)
+
+        self.assertEqual(client.session.request.call_count, 1)
 
     def test_collection_is_read_before_repeating_create(self):
         self.client.session.request.side_effect = [

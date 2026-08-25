@@ -13,7 +13,12 @@ from pathlib import Path
 from typing import Any, BinaryIO, Callable, Dict, List, Optional, TypeVar, Union
 
 import requests
-from tenacity import Retrying, retry_if_exception_type, stop_after_attempt
+from tenacity import (
+    Retrying,
+    retry_if_exception_type,
+    stop_after_attempt,
+    stop_before_delay,
+)
 from tenacity.wait import wait_incrementing
 
 from ._version import __version__
@@ -27,6 +32,7 @@ from .vbase_api_models import (
 )
 
 ResultType = TypeVar("ResultType")
+MINIMUM_STAMP_RETRY_WINDOW_SECONDS = 10.0
 
 
 class VBaseAPIError(Exception):
@@ -147,6 +153,7 @@ class VBaseAPIClient:
         operation: Callable[[], ResultType],
         *,
         retry_safe: bool,
+        max_elapsed_seconds: Optional[float] = None,
     ) -> ResultType:
         """Execute an operation with the configured linear retry policy."""
         should_retry = (
@@ -158,6 +165,10 @@ class VBaseAPIClient:
         try:
             if not should_retry:
                 return operation()
+
+            stop_condition = stop_after_attempt(self.retry_config.max_attempts)
+            if max_elapsed_seconds is not None:
+                stop_condition |= stop_before_delay(max_elapsed_seconds)
 
             retrying = Retrying(
                 retry=retry_if_exception_type(
@@ -172,7 +183,7 @@ class VBaseAPIClient:
                     increment=self.retry_config.delay_increment,
                     max=self.retry_config.max_delay,
                 ),
-                stop=stop_after_attempt(self.retry_config.max_attempts),
+                stop=stop_condition,
                 reraise=True,
             )
             return retrying(operation)
@@ -407,9 +418,9 @@ class VBaseAPIClient:
 
         Retries:
             Requests are retried only when ``idempotent`` is true, the
-            idempotency window is non-positive (unlimited), and any file input
-            can be replayed. Finite-window and non-idempotent stamps are always
-            sent once.
+            idempotency window is non-positive (unlimited) or greater than ten
+            seconds, and any file input can be replayed. Finite-window retries
+            stop before the next delay would exceed the window.
 
         Returns:
             StampCreatedResponse (201 status) or IdempotentStampResponse (200 status)
@@ -467,7 +478,16 @@ class VBaseAPIClient:
 
         stream_position = self._get_stream_position(file) if file else None
         replayable_input = not file or stream_position is not None
-        retry_safe = idempotent and idempotency_window <= 0 and replayable_input
+        finite_retry_window = (
+            float(idempotency_window)
+            if idempotency_window > MINIMUM_STAMP_RETRY_WINDOW_SECONDS
+            else None
+        )
+        retry_safe = (
+            idempotent
+            and (idempotency_window <= 0 or finite_retry_window is not None)
+            and replayable_input
+        )
 
         def stamp_attempt() -> Union[StampCreatedResponse, IdempotentStampResponse]:
             files: Dict[str, Any] = {}
@@ -493,7 +513,11 @@ class VBaseAPIClient:
                 if opened_file is not None:
                     opened_file.close()
 
-        return self._execute_with_retry(stamp_attempt, retry_safe=retry_safe)
+        return self._execute_with_retry(
+            stamp_attempt,
+            retry_safe=retry_safe,
+            max_elapsed_seconds=finite_retry_window,
+        )
 
     def upload_stamped_file(
         self, collection_name: str, file: Union[str, Path, BinaryIO]
