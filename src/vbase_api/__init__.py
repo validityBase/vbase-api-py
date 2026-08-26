@@ -1,7 +1,7 @@
 # src/vbase_api/__init__.py
 
 from ._version import __version__
-from .retry import RetryConfig
+from .retry import default_retrying
 from .vbase_api_client import VBaseAPIClient, VBaseAPIError
 from .vbase_api_models import (
     AccountSettings,
@@ -15,7 +15,7 @@ __all__ = [
     "__version__",
     "VBaseAPIClient",
     "VBaseAPIError",
-    "RetryConfig",
+    "default_retrying",
     "Collection",
     "StampCreatedResponse",
     "IdempotentStampResponse",

@@ -15,14 +15,14 @@ from typing import Any, BinaryIO, Callable, Dict, List, Optional, TypeVar, Union
 import requests
 from tenacity import (
     Retrying,
+    retry_any,
     retry_if_exception_type,
-    stop_after_attempt,
+    stop_any,
     stop_before_delay,
 )
-from tenacity.wait import wait_incrementing
 
 from ._version import __version__
-from .retry import RetryConfig
+from .retry import DEFAULT_RETRY_STATUS_CODES, default_retrying
 from .vbase_api_models import (
     AccountSettings,
     Collection,
@@ -70,7 +70,8 @@ class VBaseAPIClient:
         api_key: Bearer token for API authentication
         base_url: Base URL of the vBase API (default: https://app.vbase.com)
         timeout: Request timeout in seconds (default: 30)
-        retry_config: Retry behavior for retry-safe API operations
+        retrying: Tenacity retry controller for retry-safe API operations
+        retry_status_codes: HTTP response status codes eligible for retry
 
     Example:
         .. code-block:: python
@@ -88,13 +89,17 @@ class VBaseAPIClient:
         api_key: str,
         base_url: str = DEFAULT_BASE_URL,
         timeout: int = 30,
-        retry_config: Optional[RetryConfig] = None,
+        retrying: Optional[Retrying] = None,
+        retry_status_codes: tuple = DEFAULT_RETRY_STATUS_CODES,
     ):
         """Initialize the vBase API client."""
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
-        self.retry_config = retry_config or RetryConfig()
+        self.retrying = retrying if retrying is not None else default_retrying()
+        self.retry_status_codes = tuple(retry_status_codes)
+        if any(status < 400 or status > 599 for status in self.retry_status_codes):
+            raise ValueError("retry_status_codes must contain HTTP error status codes")
         self.session = requests.Session()
         self.session.headers.update(
             {
@@ -140,7 +145,7 @@ class VBaseAPIClient:
             timeout=self.timeout,
             **kwargs,
         )
-        if response.status_code in self.retry_config.retry_status_codes:
+        if response.status_code in self.retry_status_codes:
             error = _RetryableHTTPError(
                 self._get_response_error(response), response.status_code
             )
@@ -156,36 +161,25 @@ class VBaseAPIClient:
         max_elapsed_seconds: Optional[float] = None,
     ) -> ResultType:
         """Execute an operation with the configured linear retry policy."""
-        should_retry = (
-            retry_safe
-            and self.retry_config.enabled
-            and self.retry_config.max_attempts > 1
-        )
-
         try:
-            if not should_retry:
+            if not retry_safe:
                 return operation()
 
-            stop_condition = stop_after_attempt(self.retry_config.max_attempts)
-            if max_elapsed_seconds is not None:
-                stop_condition |= stop_before_delay(max_elapsed_seconds)
-
-            retrying = Retrying(
-                retry=retry_if_exception_type(
-                    (
-                        requests.exceptions.ConnectionError,
-                        requests.exceptions.Timeout,
-                        _RetryableHTTPError,
-                    )
+            retrying = self.retrying.copy(
+                retry=retry_any(
+                    self.retrying.retry,
+                    retry_if_exception_type(_RetryableHTTPError),
                 ),
-                wait=wait_incrementing(
-                    start=self.retry_config.initial_delay,
-                    increment=self.retry_config.delay_increment,
-                    max=self.retry_config.max_delay,
-                ),
-                stop=stop_condition,
                 reraise=True,
+                retry_error_callback=None,
             )
+            if max_elapsed_seconds is not None:
+                retrying = retrying.copy(
+                    stop=stop_any(
+                        retrying.stop,
+                        stop_before_delay(max_elapsed_seconds),
+                    )
+                )
             return retrying(operation)
         except _RetryableHTTPError as exc:
             raise VBaseAPIError(exc.message, exc.status_code) from exc
@@ -692,7 +686,8 @@ def create_client(
     api_key: str,
     base_url: str = VBaseAPIClient.DEFAULT_BASE_URL,
     timeout: int = 30,
-    retry_config: Optional[RetryConfig] = None,
+    retrying: Optional[Retrying] = None,
+    retry_status_codes: tuple = DEFAULT_RETRY_STATUS_CODES,
 ) -> VBaseAPIClient:
     """
     Create a vBase API client.
@@ -701,7 +696,8 @@ def create_client(
         api_key: Bearer token for API authentication
         base_url: Base URL of the vBase API
         timeout: Request timeout in seconds
-        retry_config: Retry behavior for retry-safe API operations
+        retrying: Tenacity retry controller for retry-safe API operations
+        retry_status_codes: HTTP response status codes eligible for retry
 
     Returns:
         Configured VBaseAPIClient instance
@@ -716,5 +712,6 @@ def create_client(
         api_key=api_key,
         base_url=base_url,
         timeout=timeout,
-        retry_config=retry_config,
+        retrying=retrying,
+        retry_status_codes=retry_status_codes,
     )

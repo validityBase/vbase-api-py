@@ -4,11 +4,18 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, call
 
 import requests
+from tenacity import (
+    Retrying,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_fixed,
+    wait_none,
+)
 
-from vbase_api import RetryConfig, VBaseAPIClient, VBaseAPIError
+from vbase_api import VBaseAPIClient, VBaseAPIError, default_retrying
 
 
 def make_response(status_code, payload, reason=None):
@@ -47,16 +54,32 @@ def receipt_payload():
     }
 
 
-class RetryConfigTests(unittest.TestCase):
+def immediate_retrying(max_attempts=3):
+    """Return the default retry controller without test delays."""
+    return default_retrying().copy(
+        stop=stop_after_attempt(max_attempts),
+        wait=wait_none(),
+    )
+
+
+class DefaultRetryingTests(unittest.TestCase):
     def test_uses_two_second_linear_backoff_defaults(self):
-        config = RetryConfig()
+        sleep = Mock()
+        operation = Mock(
+            side_effect=[
+                requests.exceptions.ConnectionError("connection reset"),
+                requests.exceptions.Timeout("request timed out"),
+                "success",
+            ]
+        )
+        retrying = default_retrying().copy(sleep=sleep)
 
-        self.assertEqual(config.initial_delay, 2.0)
-        self.assertEqual(config.delay_increment, 2.0)
+        self.assertEqual(retrying(operation), "success")
+        self.assertEqual(operation.call_count, 3)
+        sleep.assert_has_calls([call(2.0), call(4.0)])
 
-    def test_rejects_invalid_attempt_count(self):
-        with self.assertRaisesRegex(ValueError, "max_attempts"):
-            RetryConfig(max_attempts=0)
+    def test_returns_independent_retry_controllers(self):
+        self.assertIsNot(default_retrying(), default_retrying())
 
 
 class VBaseAPIClientRetryTests(unittest.TestCase):
@@ -64,12 +87,7 @@ class VBaseAPIClientRetryTests(unittest.TestCase):
         self.client = VBaseAPIClient(
             api_key="test-token",
             base_url="https://example.test",
-            retry_config=RetryConfig(
-                max_attempts=3,
-                initial_delay=0,
-                delay_increment=0,
-                max_delay=0,
-            ),
+            retrying=immediate_retrying(),
         )
         self.client.session.request = Mock()
 
@@ -86,6 +104,62 @@ class VBaseAPIClientRetryTests(unittest.TestCase):
 
         self.assertEqual([collection.name for collection in collections], ["Reports"])
         self.assertEqual(self.client.session.request.call_count, 2)
+
+    def test_standard_retrying_object_controls_attempts(self):
+        retrying = Retrying(
+            stop=stop_after_attempt(2),
+            wait=wait_none(),
+            retry=lambda retry_state: False,
+            retry_error_callback=lambda retry_state: "fallback",
+        )
+        client = VBaseAPIClient(
+            api_key="test-token",
+            base_url="https://example.test",
+            retrying=retrying,
+        )
+        client.session.request = Mock(
+            side_effect=[
+                make_response(503, {"error": "temporarily unavailable"}),
+                make_response(503, {"error": "still unavailable"}),
+            ]
+        )
+        self.addCleanup(client.close)
+
+        with self.assertRaises(VBaseAPIError) as context:
+            client.get_collections()
+
+        self.assertEqual(context.exception.status_code, 503)
+        self.assertEqual(client.session.request.call_count, 2)
+        self.assertFalse(retrying.reraise)
+        self.assertIsNotNone(retrying.retry_error_callback)
+
+    def test_retryable_http_statuses_can_be_overridden(self):
+        client = VBaseAPIClient(
+            api_key="test-token",
+            base_url="https://example.test",
+            retrying=immediate_retrying(),
+            retry_status_codes=(500,),
+        )
+        client.session.request = Mock(
+            side_effect=[
+                make_response(503, {"error": "temporarily unavailable"}),
+                make_response(200, []),
+            ]
+        )
+        self.addCleanup(client.close)
+
+        with self.assertRaises(VBaseAPIError) as context:
+            client.get_collections()
+
+        self.assertEqual(context.exception.status_code, 503)
+        self.assertEqual(client.session.request.call_count, 1)
+
+    def test_retryable_http_statuses_must_be_errors(self):
+        with self.assertRaisesRegex(ValueError, "HTTP error status codes"):
+            VBaseAPIClient(
+                api_key="test-token",
+                retry_status_codes=(200,),
+            )
 
     def test_get_does_not_retry_client_error(self):
         self.client.session.request.side_effect = [
@@ -166,11 +240,11 @@ class VBaseAPIClientRetryTests(unittest.TestCase):
         client = VBaseAPIClient(
             api_key="test-token",
             base_url="https://example.test",
-            retry_config=RetryConfig(
-                max_attempts=3,
-                initial_delay=12,
-                delay_increment=0,
-                max_delay=12,
+            retrying=Retrying(
+                stop=lambda retry_state: retry_state.attempt_number >= 3,
+                wait=wait_fixed(12),
+                retry=retry_if_exception_type(requests.exceptions.ConnectionError),
+                reraise=True,
             ),
         )
         client.session.request = Mock(
@@ -272,7 +346,7 @@ class VBaseAPIClientRetryTests(unittest.TestCase):
         client = VBaseAPIClient(
             api_key="test-token",
             base_url="https://example.test",
-            retry_config=RetryConfig(enabled=False),
+            retrying=immediate_retrying(max_attempts=1),
         )
         client.session.request = Mock(
             side_effect=[

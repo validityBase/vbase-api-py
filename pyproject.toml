@@ -7,7 +7,7 @@ name = "vbase-api"          # This is the name on PyPI
 dynamic = ["version", "dependencies"]
 description = "vBase REST API Python Client"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 license = "Apache-2.0"
 authors = [
   { name = "vBase", email = "tech@vbase.com" }

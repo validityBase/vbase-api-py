@@ -33,7 +33,7 @@ pre-commit run --all-files
 
 - Dependency layout and lock policy are canonical in
   `internal/specs/python-dependency-hashes.md`; do not duplicate them here.
-- Use Python `>=3.8` compatible syntax unless the package metadata changes.
+- Use Python `>=3.11` compatible syntax.
 - Use `black` and `isort`; pre-commit configuration is in `.pre-commit-config.yaml`.
 - Do not commit secrets, tokens, generated credentials, webhook URLs, or private environment payloads.
 
