@@ -17,6 +17,13 @@ Do not restore a local `.github/actions/setup-python-deps` copy. Use `validityBa
 
 ## Workflows
 
+### `.github/workflows/python-compatibility.yml`
+- Runs on pull requests, pushes to `main`, and manual `workflow_dispatch`.
+- Resolves the published runtime ranges from `requirements.in` on Python 3.11
+  and 3.12.
+- Builds and installs the package, checks dependency consistency with
+  `python -m pip check`, and verifies that `vbase_api` imports successfully.
+
 ### `.github/workflows/python-dependency-locks.yml`
 - Runs on pull requests, pushes to `main`, and manual `workflow_dispatch`.
 - Installs `requirements/tools.txt` through `setup-python-deps@v1` with Python 3.12 and `require-hashes: "true"`.
