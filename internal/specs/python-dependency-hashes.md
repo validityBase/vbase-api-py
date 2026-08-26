@@ -9,9 +9,9 @@ resolver-friendly. CI docs publishing and lock tooling are terminal
 environments owned by this repo, so those installs use pip hash-checking mode
 for reproducibility.
 
-Lock files are generated with Python 3.12 for CI parity. The package metadata
-may still support older Python versions, but the committed locks represent the
-CI install environment.
+The published package requires Python 3.11 or newer. Lock files are generated
+with Python 3.12 for CI parity and represent the repository-owned terminal
+environments rather than the package's abstract runtime dependency ranges.
 
 ## Files
 
