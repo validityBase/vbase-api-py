@@ -29,6 +29,8 @@ Do not restore a local `.github/actions/setup-python-deps` copy. Use `validityBa
 - Installs `requirements/tools.txt` through `setup-python-deps@v1` with Python 3.12 and `require-hashes: "true"`.
 - Regenerates `requirements/docs.txt`, `requirements/e2e.txt`, and `requirements/tools.txt`; the workflow fails if committed lock files differ.
 - Installs `requirements/docs.txt` and checks installed dependency consistency with `python -m pip check`.
+- Runs `tests.test_retries` against the checkout through `PYTHONPATH=src`
+  without requiring live API credentials.
 
 ### `.github/workflows/documentation-publishing.yml`
 - Runs on pushes to `main` and manual dispatch.
