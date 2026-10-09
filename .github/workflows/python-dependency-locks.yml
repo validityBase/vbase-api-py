@@ -44,3 +44,6 @@ jobs:
 
       - name: Check installed dependencies
         run: python -m pip check
+
+      - name: Run unit tests
+        run: PYTHONPATH=src python -m unittest tests.test_retries -v
