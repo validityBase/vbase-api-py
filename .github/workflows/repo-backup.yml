@@ -16,7 +16,7 @@ jobs:
   backup:
     # validityBase-owned shared workflows use the reviewed moving major tag so
     # centrally reviewed fixes roll forward without per-repository pin updates.
-    uses: validityBase/vbase-github-actions/.github/workflows/repo-backup.yml@v1
+    uses: validityBase/vbase-github-actions/.github/workflows/repo-backup.yml@v2
     with:
       backup-prefix: github-backups
       bundle-name: repo.bundle
