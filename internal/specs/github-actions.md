@@ -40,9 +40,9 @@ Do not restore a local `.github/actions/setup-python-deps` copy. Use `validityBa
 
 ### `.github/workflows/repo-backup.yml`
 - Runs daily at 02:17 UTC and can be triggered manually.
-- Delegates to `validityBase/vbase-github-actions/.github/workflows/repo-backup.yml@v1`.
+- Delegates to `validityBase/vbase-github-actions/.github/workflows/repo-backup.yml@v2`.
 - Uses the reviewed moving major tag for validityBase-owned shared workflows so centrally reviewed fixes roll forward without per-repository pin updates.
-- Creates a full-history git bundle, checksum, and metadata file under the shared `github-backups` object storage prefix.
+- Stores a monthly full Git bundle and daily differential backups under `github-backups`; restore details are in the [shared backup spec](https://github.com/validityBase/vbase-github-actions/blob/main/internal/specs/repo-backup.md).
 - Passes `VBASE_COMMON_REPO_READ_TOKEN` and maps `VBASE_REPO_BACKUP_SECRETS_TOKEN` to the shared workflow's `BWS_ACCESS_TOKEN`.
 - Reads object storage credentials from the `vbase-repo-backups` Bitwarden project instead of storing provider credentials directly in GitHub Secrets.
 
