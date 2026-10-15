@@ -65,4 +65,36 @@ for collection in collections:
     print(f"{collection.name}: {collection.cid}")
 ```
 
+## Retries
 
+The client retries transient transport failures and HTTP `408`, `429`, `500`,
+`502`, `503`, and `504` responses for read operations and retry-safe writes.
+The default policy makes three attempts with linear delays of two and four
+seconds.
+
+```python
+from tenacity import stop_after_attempt, wait_incrementing
+
+from vbase_api import VBaseAPIClient, default_retrying
+
+client = VBaseAPIClient(
+    api_key="your-bearer-token",
+    retrying=default_retrying().copy(
+        stop=stop_after_attempt(5),
+        wait=wait_incrementing(start=2, increment=2, max=30),
+    ),
+)
+```
+
+The client accepts a standard `tenacity.Retrying` controller. Start with
+`default_retrying()` and use its `copy()` method to override selected Tenacity
+strategies while preserving the default transient-error policy. Set
+`stop=stop_after_attempt(1)` to disable retries. Retryable HTTP statuses can be
+overridden separately with the `retry_status_codes` client argument. The client
+combines those HTTP retries with the supplied controller without modifying it.
+
+Stamp creation is retried when `idempotent=True` and `idempotency_window` is
+either non-positive (unlimited) or greater than ten seconds. Finite-window
+retries stop before the next delay would reach the window. Non-idempotent stamps
+are sent once. File uploads are retried only when the input is a path or a
+seekable stream.
