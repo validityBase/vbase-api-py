@@ -58,7 +58,7 @@ Do not restore a local `.github/actions/setup-python-deps` copy. Use `validityBa
 - Skips forked pull requests because the live E2E job requires repository
   secrets. Same-repository pull requests, pushes, and manual runs execute the
   job.
-- Uses a matrix over `ubuntu-latest`, `macos-latest`, and `windows-latest`, plus
+- Uses a matrix over `ubuntu-24.04`, `macos-latest`, and `windows-latest`, plus
   `source` and `pypi` install sources, to cover the client-library platform
   matrix and the latest published PyPI package.
 - Runs the matrix with `max-parallel: 1` to preserve the current sequential

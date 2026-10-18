@@ -13,7 +13,7 @@ permissions:
 jobs:
   build:
     name: Build distribution
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       # v5
@@ -45,7 +45,7 @@ jobs:
     name: Publish to PyPI
     needs:
       - build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment:
       name: pypi
       url: https://pypi.org/p/vbase-api
