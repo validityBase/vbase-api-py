@@ -36,3 +36,6 @@ where = ["src"]
 [tool.setuptools.dynamic]
 version = {attr = "vbase_api._version.__version__"}
 dependencies = {file = ["requirements.in"]}
+
+[tool.isort]
+profile = "black"
