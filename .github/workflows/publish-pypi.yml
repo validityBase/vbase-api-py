@@ -1,9 +1,13 @@
 name: Publish Python Package to PyPI
 
 on:
-  release:
-    types: [published]
-  workflow_dispatch: # Allow manual trigger
+  push:
+    tags: ['v[0-9]*.[0-9]*.[0-9]*']
+  workflow_dispatch: # Select an existing release tag, never a branch.
+
+concurrency:
+  group: pypi-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -16,14 +20,29 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
+      - name: Require a release tag
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+        run: test "$REF_TYPE" = tag
+
       # v5
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        with:
+          fetch-depth: 0
+
+      - name: Require a commit merged to main
+        run: git merge-base --is-ancestor HEAD origin/main
 
       - name: Set up Python
         # v6
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
           python-version: "3.12"
+
+      - name: Validate release tag, version, and changelog
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: python internal/scripts/validate_release.py --tag "$RELEASE_TAG"
 
       - name: Install build dependencies
         run: python -m pip install --upgrade build twine
@@ -33,6 +52,11 @@ jobs:
 
       - name: Check distributions
         run: python -m twine check dist/*
+
+      - name: Validate distribution versions
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: python internal/scripts/validate_release.py --tag "$RELEASE_TAG" --dist-dir dist
 
       - name: Store the distribution packages
         # v6
@@ -66,3 +90,27 @@ jobs:
       - name: Publish distribution to PyPI
         # release/v1
         uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b
+
+  github-release:
+    name: Create GitHub Release
+    needs: publish-to-pypi
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      # v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+
+      - name: Set up Python
+        # v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        with:
+          python-version: "3.12"
+
+      - name: Create release from changelog
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python internal/scripts/validate_release.py --tag "$RELEASE_TAG" --notes-file "$RUNNER_TEMP/release-notes.md"
+          gh release create "$RELEASE_TAG" --verify-tag --title "$RELEASE_TAG" --notes-file "$RUNNER_TEMP/release-notes.md"

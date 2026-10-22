@@ -23,6 +23,7 @@ Do not restore a local `.github/actions/setup-python-deps` copy. Use `validityBa
   and 3.12.
 - Builds and installs the package, checks dependency consistency with
   `python -m pip check`, and verifies that `vbase_api` imports successfully.
+- Runs the release validator unit tests on Python 3.11 and 3.12.
 
 ### `.github/workflows/python-dependency-locks.yml`
 - Runs on pull requests, pushes to `main`, and manual `workflow_dispatch`.
@@ -39,11 +40,21 @@ Do not restore a local `.github/actions/setup-python-deps` copy. Use `validityBa
 - Uses `DOCS_REPO_ACCESS_TOKEN` for the central docs repository.
 
 ### `.github/workflows/publish-pypi.yml`
-- Runs on published GitHub releases and manual dispatch.
+- Runs on version tag pushes and manual dispatch at an existing release tag.
+- Both triggers require a tag ref and a commit merged to `main`; branch dispatch
+  is rejected. Runs for the same ref are serialized without cancelling uploads.
+- Validates stable `vX.Y.Z` syntax, the source version, and a matching newest
+  dated changelog release with nonempty notes and a retained Unreleased section.
 - Sets up Python 3.12 for reproducible release builds and CI parity.
 - Installs `build` and `twine`, builds Python package distributions, and checks them with `twine`.
+- Verifies that exactly one wheel and one source archive contain `vbase-api`
+  metadata matching the tag version before storing the build artifacts.
 - Uploads the distribution artifact from the build job.
 - Publishes to PyPI through trusted publishing with OIDC.
+- Creates the GitHub Release from that tag and its changelog notes only after
+  successful publication, in a separate job with `contents: write` permission.
+- See [pypi-releases.md](pypi-releases.md) for scope, acceptance criteria, and
+  pilot validation steps.
 
 ### `.github/workflows/file-integrity-e2e.yml`
 - Runs on pull requests, pushes to `main`, and manual `workflow_dispatch`.
