@@ -11,7 +11,8 @@
 - Automatically create a GitHub Release after successful PyPI publication.
 - Preserve the existing OIDC trusted publisher and `pypi` environment.
 
-The contributor and release runbook is [CONTRIBUTING.md](../../CONTRIBUTING.md).
+Contributor guidance is in [CONTRIBUTING.md](../../CONTRIBUTING.md). The detailed
+maintainer runbook is [RELEASE_MANAGMENT.md](../../RELEASE_MANAGMENT.md).
 
 ## Acceptance criteria and evidence
 
