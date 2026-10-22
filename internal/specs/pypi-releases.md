@@ -26,7 +26,7 @@ maintainer runbook is [RELEASE_MANAGMENT.md](../../RELEASE_MANAGMENT.md).
 | Exactly one wheel and one source distribution match package name and tag version | Metadata validation tests; real build and twine check |
 | Publication uses OIDC and GitHub Release creation follows successful publication | Job permissions/dependency review; authorized pilot evidence |
 | Release notes contain only the matching changelog section | Extraction unit tests; pilot GitHub Release review |
-| Contributors can perform a release and recover from failures | Runbook review and pilot execution |
+| Contributors can prepare, publish, and verify a release | Runbook review and pilot execution |
 | Implementation receives independent review | Independent reviewer findings resolved before completion |
 
 ## Delivery steps

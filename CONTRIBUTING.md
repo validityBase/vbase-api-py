@@ -19,7 +19,7 @@ python -m unittest tests.test_release_process -v
 
 Follow [RELEASE_MANAGMENT.md](RELEASE_MANAGMENT.md) for the complete maintainer
 runbook: choosing a version, preparing the changelog, opening and reviewing the
-Release PR, tagging the merged commit, checking publication, and recovery.
+Release PR, tagging the merged commit, and verifying publication.
 
 Ordinary PRs do not publish packages. A Release PR updates the version and
 changelog; after it merges to `main`, a maintainer pushes the matching release
