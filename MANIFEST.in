@@ -1,3 +1,3 @@
 include requirements.in
 include CHANGELOG.md
-exclude tests/test_release_process.py
+exclude tests/test_release*.py

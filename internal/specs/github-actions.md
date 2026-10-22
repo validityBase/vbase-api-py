@@ -23,7 +23,7 @@ Do not restore a local `.github/actions/setup-python-deps` copy. Use `validityBa
   and 3.12.
 - Builds and installs the package, checks dependency consistency with
   `python -m pip check`, and verifies that `vbase_api` imports successfully.
-- Runs the release validator unit tests on Python 3.11 and 3.12.
+- Runs release validation and preparation unit tests on Python 3.11 and 3.12.
 
 ### `.github/workflows/python-dependency-locks.yml`
 - Runs on pull requests, pushes to `main`, and manual `workflow_dispatch`.
@@ -55,6 +55,28 @@ Do not restore a local `.github/actions/setup-python-deps` copy. Use `validityBa
   successful publication, in a separate job with `contents: write` permission.
 - See [pypi-releases.md](pypi-releases.md) for scope, acceptance criteria, and
   pilot validation steps.
+
+### `.github/workflows/prepare-release.yml`
+- Manual dispatch from `main` with a required patch/minor/major choice.
+- Reads the current source version, increments it, and resets lower components.
+- Finalizes existing Unreleased entries with the UTC date while retaining an
+  empty Unreleased section; empty notes and duplicate versions are rejected.
+- Checks for open Release PRs and existing target branches/tags, validates the
+  result, runs release-script tests, and opens a Release PR with the version
+  and changelog changes. Runs are serialized.
+- Uses the built-in token with `contents: write` and `pull-requests: write`.
+  GitHub Actions must be allowed to create PRs. A maintainer may need to select
+  **Approve workflows to run** on the bot-created PR before CI runs.
+
+### `.github/workflows/tag-release.yml`
+- Runs on merged, same-repository `release/vX.Y.Z` PRs targeting `main`.
+- Checks out the merged commit, validates the branch/tag, source version, and
+  changelog, verifies main ancestry, and pushes the matching tag. Existing tags
+  pointing at a different commit are rejected.
+- Explicitly dispatches `publish-pypi.yml` at the tag, because a tag push using
+  `GITHUB_TOKEN` does not trigger another workflow.
+- Uses `contents: write` for tags and `actions: write` for dispatch. An unmerged,
+  ordinary, or fork PR does not run the tag job. Merge authorizes publication.
 
 ### `.github/workflows/file-integrity-e2e.yml`
 - Runs on pull requests, pushes to `main`, and manual `workflow_dispatch`.

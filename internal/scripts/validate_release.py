@@ -10,12 +10,8 @@ from email.parser import BytesParser
 from pathlib import Path
 
 
-def release_notes(root: Path, tag: str) -> str:
-    """Require matching source/changelog versions and return just this release's notes."""
-    number = r"(0|[1-9][0-9]*)"
-    if not re.fullmatch(rf"v{number}\.{number}\.{number}", tag):
-        raise ValueError("Release tag must be stable vX.Y.Z (no prerelease).")
-    version = tag[1:]
+def source_version(root: Path) -> str:
+    """Read the single literal package version without executing package code."""
     tree = ast.parse((root / "src/vbase_api/_version.py").read_text(encoding="utf-8"))
     versions = [
         ast.literal_eval(node.value)
@@ -23,7 +19,18 @@ def release_notes(root: Path, tag: str) -> str:
         if isinstance(node, ast.Assign)
         and any(isinstance(t, ast.Name) and t.id == "__version__" for t in node.targets)
     ]
-    if versions != [version]:
+    if len(versions) != 1 or not isinstance(versions[0], str):
+        raise ValueError("Expected exactly one literal __version__ assignment.")
+    return versions[0]
+
+
+def release_notes(root: Path, tag: str) -> str:
+    """Require matching source/changelog versions and return just this release's notes."""
+    number = r"(0|[1-9][0-9]*)"
+    if not re.fullmatch(rf"v{number}\.{number}\.{number}", tag):
+        raise ValueError("Release tag must be stable vX.Y.Z (no prerelease).")
+    version = tag[1:]
+    if source_version(root) != version:
         raise ValueError("Tag does not match __version__ in src/vbase_api/_version.py.")
 
     changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")

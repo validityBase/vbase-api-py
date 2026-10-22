@@ -1,0 +1,82 @@
+name: Prepare release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version increment (major for breaking changes)
+        type: choice
+        required: true
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: prepare-release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require main
+        env:
+          RELEASE_REF: ${{ github.ref }}
+        run: test "$RELEASE_REF" = refs/heads/main
+
+      # v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Python
+        # v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        with:
+          python-version: "3.12"
+
+      - name: Require no open Release PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          releases=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls?state=open&base=main&per_page=100" --jq '.[] | .head.ref | select(startswith("release/v"))')
+          test -z "$releases" || { echo 'An open Release PR already exists.'; exit 1; }
+
+      - name: Prepare version and changelog
+        id: version
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: |
+          version=$(python -m internal.scripts.prepare_release --bump "$BUMP")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          python internal/scripts/validate_release.py --tag "v$version" --notes-file "$RUNNER_TEMP/release-pr.md"
+
+      - name: Test release scripts
+        run: python -m unittest tests.test_release_process tests.test_release_automation -v
+
+      - name: Open Release PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if git show-ref --verify --quiet "refs/tags/v$VERSION"; then
+            echo "Tag v$VERSION already exists."
+            exit 1
+          fi
+          if git show-ref --verify --quiet "refs/remotes/origin/release/v$VERSION"; then
+            echo "Branch release/v$VERSION already exists."
+            exit 1
+          fi
+          git switch -c "release/v$VERSION"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/vbase_api/_version.py CHANGELOG.md
+          git commit -m "Release v$VERSION"
+          git push origin "HEAD:refs/heads/release/v$VERSION"
+          gh pr create --base main --head "release/v$VERSION" --title "Release v$VERSION" --body-file "$RUNNER_TEMP/release-pr.md"

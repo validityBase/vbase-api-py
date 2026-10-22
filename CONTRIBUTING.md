@@ -12,15 +12,15 @@ documentation, and internal specifications aligned. See [CLAUDE.md](CLAUDE.md)
 for development checks. Release validation tests run without service credentials:
 
 ```bash
-python -m unittest tests.test_release_process -v
+python -m unittest tests.test_release_process tests.test_release_automation -v
 ```
 
 ## Releases
 
-Follow [RELEASE_MANAGMENT.md](RELEASE_MANAGMENT.md) for the complete maintainer
-runbook: choosing a version, preparing the changelog, opening and reviewing the
-Release PR, tagging the merged commit, and verifying publication.
+Follow [RELEASE_MANAGMENT.md](RELEASE_MANAGMENT.md) to run **Prepare release**
+with a patch, minor, or major increment, approve CI workflows for the generated
+Release PR, review it, and verify publication.
 
-Ordinary PRs do not publish packages. A Release PR updates the version and
-changelog; after it merges to `main`, a maintainer pushes the matching release
-tag to start publication.
+Ordinary PRs do not publish packages. Automation updates the version and
+changelog in a Release PR. Merging that reviewed PR to `main` automatically
+pushes its matching tag and starts publication.

@@ -41,4 +41,4 @@ jobs:
         run: python -c "import vbase_api"
 
       - name: Test release validation
-        run: python -m unittest tests.test_release_process -v
+        run: python -m unittest tests.test_release_process tests.test_release_automation -v
