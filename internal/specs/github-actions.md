@@ -23,7 +23,6 @@ Do not restore a local `.github/actions/setup-python-deps` copy. Use `validityBa
   and 3.12.
 - Builds and installs the package, checks dependency consistency with
   `python -m pip check`, and verifies that `vbase_api` imports successfully.
-- Runs release validation and preparation unit tests on Python 3.11 and 3.12.
 
 ### `.github/workflows/python-dependency-locks.yml`
 - Runs on pull requests, pushes to `main`, and manual `workflow_dispatch`.
@@ -39,44 +38,21 @@ Do not restore a local `.github/actions/setup-python-deps` copy. Use `validityBa
 - Publishes to the central docs repository.
 - Uses `DOCS_REPO_ACCESS_TOKEN` for the central docs repository.
 
-### `.github/workflows/publish-pypi.yml`
-- Runs on version tag pushes and manual dispatch at an existing release tag.
-- Both triggers require a tag ref and a commit merged to `main`; branch dispatch
-  is rejected. Runs for the same ref are serialized without cancelling uploads.
-- Validates stable `vX.Y.Z` syntax, the source version, and a matching newest
-  dated changelog release with nonempty notes and a retained Unreleased section.
-- Sets up Python 3.12 for reproducible release builds and CI parity.
-- Installs `build` and `twine`, builds Python package distributions, and checks them with `twine`.
-- Verifies that exactly one wheel and one source archive contain `vbase-api`
-  metadata matching the tag version before storing the build artifacts.
-- Uploads the distribution artifact from the build job.
-- Publishes to PyPI through trusted publishing with OIDC.
-- Creates the GitHub Release from that tag and its changelog notes only after
-  successful publication, in a separate job with `contents: write` permission.
-- See [pypi-releases.md](pypi-releases.md) for scope, acceptance criteria, and
-  pilot validation steps.
+### Python release workflow wrappers
 
-### `.github/workflows/prepare-release.yml`
-- Manual dispatch from `main` with a required patch/minor/major choice.
-- Reads the current source version, increments it, and resets lower components.
-- Finalizes existing Unreleased entries with the UTC date while retaining an
-  empty Unreleased section; empty notes and duplicate versions are rejected.
-- Checks for open Release PRs and existing target branches/tags, validates the
-  result, runs release-script tests, and opens a Release PR with the version
-  and changelog changes. Runs are serialized.
-- Uses the built-in token with `contents: write` and `pull-requests: write`.
-  GitHub Actions must be allowed to create PRs. A maintainer may need to select
-  **Approve workflows to run** on the bot-created PR before CI runs.
-
-### `.github/workflows/tag-release.yml`
-- Runs on merged, same-repository `release/vX.Y.Z` PRs targeting `main`.
-- Checks out the merged commit, validates the branch/tag, source version, and
-  changelog, verifies main ancestry, and pushes the matching tag. Existing tags
-  pointing at a different commit are rejected.
-- Explicitly dispatches `publish-pypi.yml` at the tag, because a tag push using
-  `GITHUB_TOKEN` does not trigger another workflow.
-- Uses `contents: write` for tags and `actions: write` for dispatch. An unmerged,
-  ordinary, or fork PR does not run the tag job. Merge authorizes publication.
+- `prepare-release.yml` dispatches the shared `prepare-python-release.yml` with
+  an explicit bump and this repository's version-file setting.
+- `tag-release.yml` delegates merged Release PR handling to the shared
+  `tag-python-release.yml`, including validation and publication dispatch.
+- `publish-pypi.yml` calls `build-python-release.yml`, uploads through the shared
+  `publish-python-release` composite inside its caller-owned `pypi` job, and
+  calls `github-python-release.yml` only after successful publication.
+- Wrappers pin the shared workflow and release-tools-ref to the same commit.
+  Repository settings and release invariants are in
+  [pypi-releases.md](pypi-releases.md). Generic scripts and tests are maintained
+  in the shared-actions repository, without local copies.
+- The OIDC upload job retains this repository's workflow identity; there is no
+  static PyPI token. Bot-created PR workflows may require maintainer approval.
 
 ### `.github/workflows/file-integrity-e2e.yml`
 - Runs on pull requests, pushes to `main`, and manual `workflow_dispatch`.

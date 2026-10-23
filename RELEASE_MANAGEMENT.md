@@ -38,7 +38,7 @@ The action starts from the latest `main` and:
 - Creates `release/vNEXT_VERSION` with the updated version file.
 - Moves `[Unreleased]` entries into `## [NEXT_VERSION] - YYYY-MM-DD`, using the
   UTC preparation date, and retains an empty `[Unreleased]` section.
-- Validates the result, runs the release-script tests, and opens a Release PR
+- Validates the result and opens a Release PR
   containing only the version and changelog changes.
 
 An existing open Release PR, an existing target branch/tag, or an empty
@@ -104,7 +104,7 @@ python -m venv venv/release-check-0.1.4
 source venv/release-check-0.1.4/bin/activate
 python -m pip install --index-url https://pypi.org/simple --no-cache-dir vbase-api==0.1.4
 python -m pip check
-python -c "from importlib.metadata import version; import vbase_api; assert version('vbase-api') == vbase_api.__version__ == '0.1.4'; print(vbase_api.__file__); print(version('vbase-api'))"
+python -I -c "from importlib.metadata import version; import vbase_api; assert version('vbase-api') == vbase_api.__version__ == '0.1.4'; print(vbase_api.__file__); print(version('vbase-api'))"
 deactivate
 ```
 

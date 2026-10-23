@@ -1,62 +1,16 @@
 name: Tag merged release
-
-on:
+'on':
   pull_request:
-    branches: [main]
-    types: [closed]
-
+    branches:
+    - main
+    types:
+    - closed
 permissions:
   contents: write
   actions: write
-
-concurrency:
-  group: tag-release-${{ github.event.pull_request.number }}
-  cancel-in-progress: false
-
 jobs:
   tag:
-    if: >-
-      github.event.pull_request.merged == true &&
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      startsWith(github.event.pull_request.head.ref, 'release/v')
-    runs-on: ubuntu-24.04
-    steps:
-      # v5
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
-        with:
-          ref: ${{ github.event.pull_request.merge_commit_sha }}
-          fetch-depth: 0
-
-      - name: Set up Python
-        # v6
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
-        with:
-          python-version: "3.12"
-
-      - name: Validate and push release tag
-        id: release
-        env:
-          RELEASE_BRANCH: ${{ github.event.pull_request.head.ref }}
-        run: |
-          tag="${RELEASE_BRANCH#release/}"
-          python internal/scripts/validate_release.py --tag "$tag"
-          git merge-base --is-ancestor HEAD origin/main
-          if git show-ref --verify --quiet "refs/tags/$tag"; then
-            test "$(git rev-parse "refs/tags/$tag^{commit}")" = "$(git rev-parse HEAD)" || {
-              echo "Tag $tag already targets a different commit."
-              exit 1
-            }
-          else
-            git config user.name 'github-actions[bot]'
-            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git tag -a "$tag" -m "Release $tag"
-            git push origin "refs/tags/$tag"
-          fi
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-
-      # Push events from GITHUB_TOKEN do not start other workflows.
-      - name: Start publication at the release tag
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ steps.release.outputs.tag }}
-        run: gh workflow run publish-pypi.yml --ref "$RELEASE_TAG"
+    uses: validityBase/vbase-github-actions/.github/workflows/tag-python-release.yml@90bb174056b74032c5f750473d2b42f4b1fa1797
+    with:
+      version-file: src/vbase_api/_version.py
+      release-tools-ref: 90bb174056b74032c5f750473d2b42f4b1fa1797
