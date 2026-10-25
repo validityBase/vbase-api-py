@@ -12,10 +12,10 @@ permissions:
   actions: write
 jobs:
   build:
-    uses: validityBase/vbase-github-actions/.github/workflows/build-python-release.yml@87ddbdef4c28f1a702e3b358b2a1b6659919960c
+    uses: validityBase/vbase-github-actions/.github/workflows/build-python-release.yml@24bce39c7e11510238b189ee14abcdf7e129aae6
     with:
       version-file: src/vbase_api/_version.py
-      release-tools-ref: 87ddbdef4c28f1a702e3b358b2a1b6659919960c
+      release-tools-ref: 24bce39c7e11510238b189ee14abcdf7e129aae6
       package-name: vbase-api
   publish-to-pypi:
     needs: build
@@ -27,10 +27,10 @@ jobs:
       id-token: write
       actions: read
     steps:
-    - uses: validityBase/vbase-github-actions/.github/actions/publish-python-release@87ddbdef4c28f1a702e3b358b2a1b6659919960c
+    - uses: validityBase/vbase-github-actions/.github/actions/publish-python-release@24bce39c7e11510238b189ee14abcdf7e129aae6
   github-release:
     needs: publish-to-pypi
     permissions:
       contents: write
       actions: read
-    uses: validityBase/vbase-github-actions/.github/workflows/github-python-release.yml@87ddbdef4c28f1a702e3b358b2a1b6659919960c
+    uses: validityBase/vbase-github-actions/.github/workflows/github-python-release.yml@24bce39c7e11510238b189ee14abcdf7e129aae6

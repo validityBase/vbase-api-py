@@ -2,7 +2,9 @@
 
 ## GitHub Actions
 - Third-party GitHub Actions are pinned to full commit SHAs.
-- vBase-owned shared actions and reusable workflows use reviewed `validityBase/vbase-github-actions` version tags.
+- Shared vBase-owned release workflows and composite actions are pinned by full
+  commit SHA; each release-tools-ref matches its workflow SHA. Non-release
+  workflows may use reviewed shared release tags such as `@v1`.
 - Dependency layout, lock policy, and package metadata rules are canonical in
   `internal/specs/python-dependency-hashes.md`; keep that as the only detailed
   copy.

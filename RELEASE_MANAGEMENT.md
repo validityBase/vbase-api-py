@@ -1,6 +1,6 @@
 # Release management
 
-Follow the [shared release runbook](https://github.com/validityBase/vbase-github-actions/blob/87ddbdef4c28f1a702e3b358b2a1b6659919960c/RELEASE_MANAGEMENT.md)
+Follow the [shared release runbook](https://github.com/validityBase/vbase-github-actions/blob/main/RELEASE_MANAGEMENT.md)
 for preparation, CI approval, review, automatic publication, and verification.
 Release logic, tests, and the runbook are maintained in `vbase-github-actions`.
 
@@ -18,8 +18,8 @@ Release logic, tests, and the runbook are maintained in `vbase-github-actions`.
 | Publication workflow / environment | `publish-pypi.yml` / `pypi` |
 
 Start preparation through this repository's **Actions → Prepare release**,
-using `main` and an explicit patch/minor/major increment. Read the version
-from the version file; no package version is chosen by this integration.
+using `main` and an explicit patch/minor/major increment. The selected bump type determines the next version number, derived
+from the current version in the version file.
 
 Shared settings and defaults are in the
-[action contract](https://github.com/validityBase/vbase-github-actions/blob/87ddbdef4c28f1a702e3b358b2a1b6659919960c/.github/actions/python-release/README.md).
+[action contract](https://github.com/validityBase/vbase-github-actions/blob/main/.github/actions/python-release/README.md).

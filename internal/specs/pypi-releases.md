@@ -13,7 +13,7 @@ The three local workflow files declare triggers and call shared workflows in
 this repository contains no copies. Each reusable workflow and its
 `release-tools-ref` must use the same pinned shared commit. Optional input
 settings, including commit author defaults, are documented in the shared
-[release contract](https://github.com/validityBase/vbase-github-actions/blob/87ddbdef4c28f1a702e3b358b2a1b6659919960c/.github/actions/python-release/README.md).
+[release contract](https://github.com/validityBase/vbase-github-actions/blob/main/.github/actions/python-release/README.md).
 
 The upload job remains in this repository's workflow so its existing PyPI
 trusted-publisher identity is preserved. It calls the shared publication

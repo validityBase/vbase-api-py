@@ -2,7 +2,9 @@
 
 ## Policy
 - Third-party actions are pinned by full commit SHA for reproducibility.
-- Shared vBase-owned actions and reusable workflows use `validityBase/vbase-github-actions` with reviewed release tags such as `@v1`.
+- Shared vBase-owned release workflows and composite actions are pinned by full
+  commit SHA; each release-tools-ref matches its workflow SHA. Non-release
+  workflows may use reviewed shared release tags such as `@v1`.
 - Workflow permissions are declared explicitly and kept minimal.
 - Secrets must come from GitHub Secrets or deployment configuration, never from committed files or logs.
 - Dependency layout and lock policy are canonical in
