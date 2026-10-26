@@ -10,7 +10,6 @@ for prior changes.
 
 ## [Unreleased]
 
-### Fixed
+### Added
 
-- Retain Python 3.8+ support, including source installations on Python 3.8.
-  Compatibility tests cover Python 3.8 and 3.11.
+- Compatibility test matrix for Python 3.8, 3.11, and 3.12.

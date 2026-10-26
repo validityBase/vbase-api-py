@@ -8,17 +8,12 @@ from unittest.mock import patch
 
 import requests
 
-from vbase_api import (
-    IdempotentStampResponse,
-    StampCreatedResponse,
-    VBaseAPIClient,
-    VBaseAPIError,
-)
+import vbase_api
 
 
 class APIClientTests(unittest.TestCase):
     def setUp(self):
-        self.client = VBaseAPIClient(
+        self.client = vbase_api.VBaseAPIClient(
             api_key="test-only-key", base_url="https://example.invalid", timeout=7
         )
         self.addCleanup(self.client.close)
@@ -67,19 +62,20 @@ class APIClientTests(unittest.TestCase):
 
     def test_stamp_response_types(self):
         for status, expected in [
-            (200, IdempotentStampResponse),
-            (201, StampCreatedResponse),
+            (200, vbase_api.IdempotentStampResponse),
+            (201, vbase_api.StampCreatedResponse),
         ]:
-            with self.subTest(status=status), patch.object(
-                self.client.session,
-                "post",
-                return_value=self.response(
-                    status, {"commitment_receipt": self.receipt}
-                ),
-            ):
-                stamp = self.client.create_stamp(data_cid="0xobject")
-                self.assertIsInstance(stamp, expected)
-                self.assertEqual(stamp.commitment_receipt.object_cid, "0xobject")
+            with self.subTest(status=status):
+                with patch.object(
+                    self.client.session,
+                    "post",
+                    return_value=self.response(
+                        status, {"commitment_receipt": self.receipt}
+                    ),
+                ):
+                    stamp = self.client.create_stamp(data_cid="0xobject")
+                    self.assertIsInstance(stamp, expected)
+                    self.assertEqual(stamp.commitment_receipt.object_cid, "0xobject")
 
     def test_upload_closes_file_after_request(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -101,7 +97,7 @@ class APIClientTests(unittest.TestCase):
             "get",
             return_value=self.response(403, {"error": "Access denied"}),
         ):
-            with self.assertRaises(VBaseAPIError) as raised:
+            with self.assertRaises(vbase_api.VBaseAPIError) as raised:
                 self.client.get_collections()
         self.assertEqual(raised.exception.status_code, 403)
         self.assertEqual(str(raised.exception), "[403] Access denied")

@@ -21,12 +21,10 @@ Do not restore a local `.github/actions/setup-python-deps` copy. Use `validityBa
 
 ### `.github/workflows/python-compatibility.yml`
 - Runs on pull requests, pushes to `main`, and manual `workflow_dispatch`.
-- Resolves the published runtime ranges from `requirements.in` on Python 3.8
-  and 3.11.
+- Resolves the published runtime ranges from `requirements.in` on Python 3.11
+  and 3.12.
 - Builds and installs the package, checks dependency consistency with
   `python -m pip check`, and verifies that `vbase_api` imports successfully.
-- Runs `python -m unittest tests.test_api_client -v` on both versions; these
-  client request/response tests need no service credentials.
 
 ### `.github/workflows/python-dependency-locks.yml`
 - Runs on pull requests, pushes to `main`, and manual `workflow_dispatch`.
