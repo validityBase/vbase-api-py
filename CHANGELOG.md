@@ -9,3 +9,7 @@ Earlier releases were not tracked in this file; see the
 for prior changes.
 
 ## [Unreleased]
+
+### Changed
+
+- Require Python 3.11 or newer; Python 3.8–3.10 are no longer supported.
