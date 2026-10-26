@@ -44,20 +44,21 @@ class APIClientTests(unittest.TestCase):
             "description": "Example collection",
         }
         with patch.object(
-            self.client.session, "post", return_value=self.response(201, payload)
-        ) as post:
+            self.client.session, "request", return_value=self.response(201, payload)
+        ) as request:
             collection = self.client.create_collection("Example", "Example collection")
         self.assertEqual(collection.cid, "0xset")
         self.assertEqual(collection.name, "Example")
-        post.assert_called_once_with(
+        request.assert_called_once_with(
+            "POST",
             "https://example.invalid/api/v1/collections",
+            timeout=7,
             json={
                 "name": "Example",
                 "cid": None,
                 "description": "Example collection",
                 "is_pinned": True,
             },
-            timeout=7,
         )
 
     def test_stamp_response_types(self):
@@ -68,7 +69,7 @@ class APIClientTests(unittest.TestCase):
             with self.subTest(status=status):
                 with patch.object(
                     self.client.session,
-                    "post",
+                    "request",
                     return_value=self.response(
                         status, {"commitment_receipt": self.receipt}
                     ),
@@ -83,18 +84,18 @@ class APIClientTests(unittest.TestCase):
             path.write_bytes(b"example")
             with patch.object(
                 self.client.session,
-                "post",
+                "request",
                 return_value=self.response(201, {"commitment_receipt": self.receipt}),
-            ) as post:
+            ) as request:
                 result = self.client.upload_stamped_file("Example", path)
-            uploaded = post.call_args.kwargs["files"]["file"][1]
+            uploaded = request.call_args.kwargs["files"]["file"][1]
             self.assertTrue(uploaded.closed)
             self.assertEqual(result.commitment_receipt.object_cid, "0xobject")
 
     def test_api_error_preserves_status_and_message(self):
         with patch.object(
             self.client.session,
-            "get",
+            "request",
             return_value=self.response(403, {"error": "Access denied"}),
         ):
             with self.assertRaises(vbase_api.VBaseAPIError) as raised:

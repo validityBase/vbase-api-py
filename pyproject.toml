@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools >= 62.6"]
+requires = ["setuptools >= 77.0.3"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,8 +7,8 @@ name = "vbase-api"          # This is the name on PyPI
 dynamic = ["version", "dependencies"]
 description = "vBase REST API Python Client"
 readme = "README.md"
-requires-python = ">=3.8"
-license = {text = "Apache-2.0"}
+requires-python = ">=3.11"
+license = "Apache-2.0"
 authors = [
   { name = "vBase", email = "tech@vbase.com" }
 ]
@@ -36,3 +36,6 @@ where = ["src"]
 [tool.setuptools.dynamic]
 version = {attr = "vbase_api._version.__version__"}
 dependencies = {file = ["requirements.in"]}
+
+[tool.isort]
+profile = "black"
