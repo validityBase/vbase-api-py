@@ -10,6 +10,7 @@ for prior changes.
 
 ## [Unreleased]
 
-### Changed
+### Fixed
 
-- Require Python 3.11 or newer; Python 3.8–3.10 are no longer supported.
+- Retain Python 3.8+ support, including source installations on Python 3.8.
+  Compatibility tests cover Python 3.8 and 3.11.

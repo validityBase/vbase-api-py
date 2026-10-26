@@ -2,7 +2,7 @@
 
 vBase REST API Python Client
 
-Requires Python 3.11 or newer.
+Requires Python 3.8 or newer. Compatibility tests run on Python 3.8 and 3.11.
 
 See [documentation](https://docs.vbase.com/) and the [Swagger UI](https://app.vbase.com/swagger/) for more details.
 
@@ -64,5 +64,3 @@ collections = client.get_collections()
 for collection in collections:
     print(f"{collection.name}: {collection.cid}")
 ```
-
-

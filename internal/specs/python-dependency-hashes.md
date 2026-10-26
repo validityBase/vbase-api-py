@@ -9,9 +9,17 @@ resolver-friendly. CI docs publishing and lock tooling are terminal
 environments owned by this repo, so those installs use pip hash-checking mode
 for reproducibility.
 
-The published package requires Python 3.11 or newer. Lock files are generated
+The published package requires Python 3.8 or newer. Lock files are generated
 with Python 3.12 for CI parity and represent the repository-owned terminal
 environments rather than the package's abstract runtime dependency ranges.
+
+Package builds use `setuptools>=62.6` so Python 3.8 can select a compatible
+backend. The license uses the legacy text table because SPDX string license
+metadata requires setuptools 77+, which requires Python 3.9+. The package
+license remains Apache-2.0. Modern setuptools emits a deprecation warning for
+this table; revisit the license representation when changing Python 3.8 build
+support. Terminal tooling locks and the live E2E environment
+continue to use Python 3.12 independently of package runtime support.
 
 ## Files
 

@@ -3,7 +3,9 @@
 ## Development setup
 
 Fork and clone the repository, then run these commands from the repository root
-with Python 3.11 or 3.12. The activation command below is for macOS/Linux;
+with Python 3.11 or 3.12 for the development tools. The package supports Python
+3.8+; CI tests installation and client behavior on Python 3.8 and 3.11.
+The activation command below is for macOS/Linux;
 on Windows PowerShell use `venv\Scripts\Activate.ps1`.
 
 ```bash
@@ -37,7 +39,16 @@ The hooks run Black, isort, and file/YAML checks. To run the test suite:
 python -m unittest discover -s tests -v
 ```
 
-The current suite contains live file-integrity integration tests. Without the
+The client tests run without credentials. To check runtime compatibility in a
+separate Python 3.8 or 3.11 virtual environment, run:
+
+```bash
+python -m pip install .
+python -m pip check
+python -m unittest tests.test_api_client -v
+```
+
+The suite also contains live file-integrity integration tests. Without the
 required API and AWS credentials they skip; a skipped run does not verify live
 behavior. See the [test environment guide](internal/specs/e2e-file-integrity.md)
 for the required environment variables and service setup. Never put credentials

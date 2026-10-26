@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.8", "3.11"]
 
     steps:
       - name: Checkout repository
@@ -39,3 +39,6 @@ jobs:
 
       - name: Check package import
         run: python -c "import vbase_api"
+
+      - name: Run client tests
+        run: python -m unittest tests.test_api_client -v
