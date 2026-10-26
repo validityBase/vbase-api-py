@@ -133,7 +133,10 @@ class VBaseAPIClient:
             raise VBaseAPIError(
                 self._get_response_error(response), response.status_code
             ) from exc
-        return response.json()
+        try:
+            return response.json()
+        except requests.exceptions.RequestException as exc:
+            raise VBaseAPIError(f"Request failed: {str(exc)}") from exc
 
     def _request_once(
         self, method: str, endpoint: str, **kwargs: Any

@@ -105,6 +105,29 @@ class VBaseAPIClientRetryTests(unittest.TestCase):
         self.assertEqual([collection.name for collection in collections], ["Reports"])
         self.assertEqual(self.client.session.request.call_count, 2)
 
+    def test_malformed_success_json_raises_public_error_without_retry(self):
+        operations = (
+            ("get_collections", lambda: self.client.get_collections()),
+            ("verify_stamps", lambda: self.client.verify_stamps(["0xobject"])),
+            ("get_current_user", lambda: self.client.get_current_user()),
+            ("get_user", lambda: self.client.get_user("0xuser")),
+            ("create_stamp", lambda: self.client.create_stamp(data_cid="0xobject")),
+        )
+        for name, operation in operations:
+            with self.subTest(operation=name):
+                response = make_response(200, {})
+                response._content = b"not-json"
+                self.client.session.request.reset_mock(return_value=True)
+                self.client.session.request.return_value = response
+
+                with self.assertRaises(VBaseAPIError) as context:
+                    operation()
+
+                self.assertIsInstance(
+                    context.exception.__cause__, requests.exceptions.JSONDecodeError
+                )
+                self.assertEqual(self.client.session.request.call_count, 1)
+
     def test_standard_retrying_object_controls_attempts(self):
         retrying = Retrying(
             stop=stop_after_attempt(2),
