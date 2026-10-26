@@ -3,20 +3,27 @@ name: Publish Python Package to PyPI
   push:
     tags:
     - v[0-9]*.[0-9]*.[0-9]*
-  workflow_dispatch: null
+  workflow_dispatch:
+    inputs:
+      release-tag:
+        description: Existing release tag (for example v0.1.4); required when running from main.
+        type: string
+        required: false
+        default: ''
 concurrency:
-  group: pypi-${{ github.ref }}
+  group: pypi-${{ inputs.release-tag && format('refs/tags/{0}', inputs.release-tag) || github.ref }}
   cancel-in-progress: false
 permissions:
   contents: read
   actions: write
 jobs:
   build:
-    uses: validityBase/vbase-github-actions/.github/workflows/build-python-release.yml@86ade940b9980dc465f0071c24146545bcb67344
+    uses: validityBase/vbase-github-actions/.github/workflows/build-python-release.yml@62d57fc9eaaf2e8b6d341ec78c8c3409e8cda183
     with:
       version-file: src/vbase_api/_version.py
-      release-tools-ref: 86ade940b9980dc465f0071c24146545bcb67344
+      release-tools-ref: 62d57fc9eaaf2e8b6d341ec78c8c3409e8cda183
       package-name: vbase-api
+      release-tag: ${{ inputs.release-tag }}
   publish-to-pypi:
     needs: build
     runs-on: ubuntu-24.04
@@ -27,10 +34,19 @@ jobs:
       id-token: write
       actions: read
     steps:
-    - uses: validityBase/vbase-github-actions/.github/actions/publish-python-release@86ade940b9980dc465f0071c24146545bcb67344
+    # The publisher must run directly so it resolves its own Docker image.
+    - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+      with:
+        name: python-package-distributions
+        path: dist
+    - uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b
+      with:
+        packages-dir: dist
   github-release:
     needs: publish-to-pypi
     permissions:
       contents: write
       actions: read
-    uses: validityBase/vbase-github-actions/.github/workflows/github-python-release.yml@86ade940b9980dc465f0071c24146545bcb67344
+    uses: validityBase/vbase-github-actions/.github/workflows/github-python-release.yml@62d57fc9eaaf2e8b6d341ec78c8c3409e8cda183
+    with:
+      release-tag: ${{ inputs.release-tag }}
