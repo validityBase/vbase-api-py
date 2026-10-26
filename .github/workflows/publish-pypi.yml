@@ -1,68 +1,36 @@
 name: Publish Python Package to PyPI
-
-on:
-  release:
-    types: [published]
-  workflow_dispatch: # Allow manual trigger
-
+'on':
+  push:
+    tags:
+    - v[0-9]*.[0-9]*.[0-9]*
+  workflow_dispatch: null
+concurrency:
+  group: pypi-${{ github.ref }}
+  cancel-in-progress: false
 permissions:
   contents: read
-  # upload-artifact needs Actions API write when permissions are explicit
   actions: write
-
 jobs:
   build:
-    name: Build distribution
-    runs-on: ubuntu-24.04
-
-    steps:
-      # v5
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
-
-      - name: Set up Python
-        # v6
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
-        with:
-          python-version: "3.12"
-
-      - name: Install build dependencies
-        run: python -m pip install --upgrade build twine
-
-      - name: Build package
-        run: python -m build
-
-      - name: Check distributions
-        run: python -m twine check dist/*
-
-      - name: Store the distribution packages
-        # v6
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
-        with:
-          name: python-package-distributions
-          path: dist/
-
+    uses: validityBase/vbase-github-actions/.github/workflows/build-python-release.yml@86ade940b9980dc465f0071c24146545bcb67344
+    with:
+      version-file: src/vbase_api/_version.py
+      release-tools-ref: 86ade940b9980dc465f0071c24146545bcb67344
+      package-name: vbase-api
   publish-to-pypi:
-    name: Publish to PyPI
-    needs:
-      - build
+    needs: build
     runs-on: ubuntu-24.04
     environment:
       name: pypi
       url: https://pypi.org/p/vbase-api
     permissions:
-      # id-token: trusted publishing to PyPI (OIDC)
       id-token: write
-      # download-artifact needs Actions API read when job-level permissions are set
       actions: read
-
     steps:
-      - name: Download all the dists
-        # v6
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
-        with:
-          name: python-package-distributions
-          path: dist/
-
-      - name: Publish distribution to PyPI
-        # release/v1
-        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b
+    - uses: validityBase/vbase-github-actions/.github/actions/publish-python-release@86ade940b9980dc465f0071c24146545bcb67344
+  github-release:
+    needs: publish-to-pypi
+    permissions:
+      contents: write
+      actions: read
+    uses: validityBase/vbase-github-actions/.github/workflows/github-python-release.yml@86ade940b9980dc465f0071c24146545bcb67344

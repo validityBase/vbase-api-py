@@ -2,7 +2,9 @@
 
 ## Policy
 - Third-party actions are pinned by full commit SHA for reproducibility.
-- Shared vBase-owned actions and reusable workflows use `validityBase/vbase-github-actions` with reviewed release tags such as `@v1`.
+- Shared vBase-owned release workflows and composite actions are pinned by full
+  commit SHA; each release-tools-ref matches its workflow SHA. Non-release
+  workflows may use reviewed shared release tags such as `@v1`.
 - Workflow permissions are declared explicitly and kept minimal.
 - Secrets must come from GitHub Secrets or deployment configuration, never from committed files or logs.
 - Dependency layout and lock policy are canonical in
@@ -38,12 +40,21 @@ Do not restore a local `.github/actions/setup-python-deps` copy. Use `validityBa
 - Publishes to the central docs repository.
 - Uses `DOCS_REPO_ACCESS_TOKEN` for the central docs repository.
 
-### `.github/workflows/publish-pypi.yml`
-- Runs on published GitHub releases and manual dispatch.
-- Sets up Python 3.12 for reproducible release builds and CI parity.
-- Installs `build` and `twine`, builds Python package distributions, and checks them with `twine`.
-- Uploads the distribution artifact from the build job.
-- Publishes to PyPI through trusted publishing with OIDC.
+### Python release workflow wrappers
+
+- `prepare-release.yml` dispatches the shared `prepare-python-release.yml` with
+  an explicit bump and this repository's version-file setting.
+- `tag-release.yml` delegates merged Release PR handling to the shared
+  `tag-python-release.yml`, including validation and publication dispatch.
+- `publish-pypi.yml` calls `build-python-release.yml`, uploads through the shared
+  `publish-python-release` composite inside its caller-owned `pypi` job, and
+  calls `github-python-release.yml` only after successful publication.
+- Wrappers pin the shared workflow and release-tools-ref to the same commit.
+  Repository settings and release invariants are in
+  [pypi-releases.md](pypi-releases.md). Generic scripts and tests are maintained
+  in the shared-actions repository, without local copies.
+- The OIDC upload job retains this repository's workflow identity; there is no
+  static PyPI token. Bot-created PR workflows may require maintainer approval.
 
 ### `.github/workflows/file-integrity-e2e.yml`
 - Runs on pull requests, pushes to `main`, and manual `workflow_dispatch`.
