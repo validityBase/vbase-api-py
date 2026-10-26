@@ -10,6 +10,8 @@ for prior changes.
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-10-26
+
 ### Added
 
 - Compatibility test matrix for Python 3.8, 3.11, and 3.12.
