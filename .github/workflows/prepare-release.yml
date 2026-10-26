@@ -15,8 +15,8 @@ permissions:
   pull-requests: write
 jobs:
   prepare:
-    uses: validityBase/vbase-github-actions/.github/workflows/prepare-python-release.yml@86ade940b9980dc465f0071c24146545bcb67344
+    uses: validityBase/vbase-github-actions/.github/workflows/prepare-python-release.yml@62d57fc9eaaf2e8b6d341ec78c8c3409e8cda183
     with:
       version-file: src/vbase_api/_version.py
-      release-tools-ref: 86ade940b9980dc465f0071c24146545bcb67344
+      release-tools-ref: 62d57fc9eaaf2e8b6d341ec78c8c3409e8cda183
       bump: ${{ inputs.bump }}
