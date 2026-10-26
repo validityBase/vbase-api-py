@@ -18,10 +18,10 @@ permissions:
   actions: write
 jobs:
   build:
-    uses: validityBase/vbase-github-actions/.github/workflows/build-python-release.yml@62d57fc9eaaf2e8b6d341ec78c8c3409e8cda183
+    uses: validityBase/vbase-github-actions/.github/workflows/build-python-release.yml@7c910e039185487d620b26ae06cfa83f408be5eb
     with:
       version-file: src/vbase_api/_version.py
-      release-tools-ref: 62d57fc9eaaf2e8b6d341ec78c8c3409e8cda183
+      release-tools-ref: 7c910e039185487d620b26ae06cfa83f408be5eb
       package-name: vbase-api
       release-tag: ${{ inputs.release-tag }}
   publish-to-pypi:
@@ -47,6 +47,6 @@ jobs:
     permissions:
       contents: write
       actions: read
-    uses: validityBase/vbase-github-actions/.github/workflows/github-python-release.yml@62d57fc9eaaf2e8b6d341ec78c8c3409e8cda183
+    uses: validityBase/vbase-github-actions/.github/workflows/github-python-release.yml@7c910e039185487d620b26ae06cfa83f408be5eb
     with:
       release-tag: ${{ inputs.release-tag }}
