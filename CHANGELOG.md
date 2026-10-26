@@ -9,3 +9,7 @@ Earlier releases were not tracked in this file; see the
 for prior changes.
 
 ## [Unreleased]
+
+### Added
+
+- Compatibility test matrix for Python 3.8, 3.11, and 3.12.
