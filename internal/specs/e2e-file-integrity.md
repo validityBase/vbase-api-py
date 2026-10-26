@@ -2,10 +2,12 @@
 
 ## Scope
 
-`vbase-api-py` owns client-library coverage for stamped-file
-integrity scenarios. The tests verify that the Python client's public stamping
-methods remain compatible with the app REST API and that stored file objects are
-byte-identical to the original source bytes.
+`vbase-api-py` owns client-library coverage for stamped-file integrity
+scenarios. The tests verify that the Python client's public stamping methods
+remain compatible with the app REST API and that stored file objects are
+byte-identical to the original source bytes. CI runs the same live E2E scenarios
+against both the checked-out source package and the latest published
+`vbase-api` package from PyPI.
 
 The app repository owns Cypress coverage for the UI and direct app API flows.
 This repository owns Python client coverage for:
@@ -87,6 +89,11 @@ already covered by Cypress in the app repository. Direct S3 reads keep this repo
 focused on the Python client -> app REST API -> stored object contract without
 adding a test-only app endpoint.
 
+The workflow sets `VBASE_API_PACKAGE_SOURCE` to `source` or `pypi` for each
+matrix job. The test logs the imported package version/path and asserts that the
+PyPI matrix leg imports `vbase_api` from the installed package rather than the
+repository checkout.
+
 ## Traceability
 
 | Requirement | Use Case | Test |
@@ -96,3 +103,4 @@ adding a test-only app endpoint.
 | Client-library manual stamped-file upload preserves downloaded bytes for text and binary files | UC-B | `tests/test_file_integrity_e2e.py::VBaseAPIClientFileIntegrityE2ETests.test_upload_stamped_file_preserves_downloaded_file_bytes` |
 | Client-library manual stamped-file upload returns expected `object_cid` and collection `set_cid` | UC-B | `tests/test_file_integrity_e2e.py::VBaseAPIClientFileIntegrityE2ETests.test_upload_stamped_file_preserves_downloaded_file_bytes` |
 | File-integrity client tests run across Linux, macOS, and Windows | UC-A, UC-B | `.github/workflows/file-integrity-e2e.yml` |
+| Latest published `vbase-api` PyPI package remains compatible with the app REST API | UC-A, UC-B | `.github/workflows/file-integrity-e2e.yml` with `install_source=pypi` |

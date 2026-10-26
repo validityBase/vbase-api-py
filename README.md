@@ -2,6 +2,8 @@
 
 vBase REST API Python Client
 
+Requires Python 3.11 or newer.
+
 See [documentation](https://docs.vbase.com/) and the [Swagger UI](https://app.vbase.com/swagger/) for more details.
 
 ---

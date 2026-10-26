@@ -9,6 +9,7 @@ environment variables.
 from __future__ import annotations
 
 import hashlib
+import importlib.metadata as metadata
 import os
 import tempfile
 import time
@@ -26,6 +27,7 @@ except ImportError as exc:  # pragma: no cover
         "Install requirements/e2e.txt to run live file-integrity E2E tests."
     ) from exc
 
+import vbase_api
 from vbase_api import VBaseAPIClient, VBaseAPIError
 
 
@@ -52,6 +54,48 @@ def _int_env(name: str, default: int) -> int:
         raise ValueError(
             f"{name} must be an integer number of seconds; got {value!r}."
         ) from None
+
+
+def _log_and_assert_package_source() -> None:
+    install_source = _first_env("VBASE_API_PACKAGE_SOURCE")
+    if not install_source:
+        return
+
+    package_path = Path(vbase_api.__file__).resolve()
+    package_version = getattr(vbase_api, "__version__", "unknown")
+    try:
+        distribution_version = metadata.version("vbase-api")
+    except metadata.PackageNotFoundError:
+        distribution_version = "not installed"
+    print(
+        "vbase-api "
+        f"package_version={package_version} "
+        f"distribution_version={distribution_version} "
+        f"imported from {package_path}"
+    )
+
+    repo_root_raw = _first_env("GITHUB_WORKSPACE")
+    if not repo_root_raw:
+        return
+
+    repo_root = Path(repo_root_raw).resolve()
+    try:
+        package_path.relative_to(repo_root)
+        package_in_repo = True
+    except ValueError:
+        package_in_repo = False
+
+    if install_source == "source":
+        if not package_in_repo:
+            raise AssertionError(
+                "Source-install E2E run imported vbase_api outside the checkout: "
+                f"{package_path}"
+            )
+    elif install_source == "pypi" and package_in_repo:
+        raise AssertionError(
+            "PyPI-install E2E run imported vbase_api from the checkout instead of "
+            f"site-packages: {package_path}"
+        )
 
 
 @dataclass(frozen=True)
@@ -119,6 +163,7 @@ class VBaseAPIClientFileIntegrityE2ETests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
+        _log_and_assert_package_source()
         cls.config = LiveE2EConfig.from_env()
         cls.client = VBaseAPIClient(
             api_key=cls.config.api_key,
