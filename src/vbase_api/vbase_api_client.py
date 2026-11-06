@@ -9,18 +9,21 @@ Swagger: https://app.vbase.com/swagger/
 """
 
 import json
-import requests
 from pathlib import Path
-from typing import Dict, List, Optional, Any, BinaryIO, Union
+from typing import Any, BinaryIO, Dict, List, Optional, Union
+
+import requests
 
 from ._version import __version__
+from .stamp_requests import post_stamp_operation
 from .vbase_api_models import (
-    Collection,
-    StampCreatedResponse,
-    IdempotentStampResponse,
-    VerificationResult,
     AccountSettings,
+    Collection,
+    IdempotentStampResponse,
+    StampCreatedResponse,
+    VerificationResult,
 )
+
 
 class VBaseAPIError(Exception):
     """Base exception for vBase API errors."""
@@ -35,6 +38,7 @@ class VBaseAPIError(Exception):
         if self.status_code:
             error_msg = f"[{self.status_code}] {error_msg}"
         return error_msg
+
 
 class VBaseAPIClient:
     """
@@ -60,24 +64,23 @@ class VBaseAPIClient:
     API_VERSION = "v1"
 
     def __init__(
-        self,
-        api_key: str,
-        base_url: str = DEFAULT_BASE_URL,
-        timeout: int = 30
+        self, api_key: str, base_url: str = DEFAULT_BASE_URL, timeout: int = 30
     ):
         """Initialize the vBase API client."""
         self.api_key = api_key
-        self.base_url = base_url.rstrip('/')
+        self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self.session = requests.Session()
-        self.session.headers.update({
-            'Authorization': f'Bearer {api_key}',
-            'User-Agent': f'vBase API Python Client v{__version__}',
-        })
+        self.session.headers.update(
+            {
+                "Authorization": f"Bearer {api_key}",
+                "User-Agent": f"vBase API Python Client v{__version__}",
+            }
+        )
 
     def _get_url(self, endpoint: str) -> str:
         """Construct the full API URL for an endpoint."""
-        endpoint = endpoint.lstrip('/')
+        endpoint = endpoint.lstrip("/")
         return f"{self.base_url}/api/{self.API_VERSION}/{endpoint}"
 
     def _handle_response(self, response: requests.Response) -> Any:
@@ -88,7 +91,7 @@ class VBaseAPIClient:
         except requests.exceptions.HTTPError as e:
             try:
                 error_data = response.json()
-                error_msg = error_data.get('error', str(e))
+                error_msg = error_data.get("error", str(e))
                 raise VBaseAPIError(error_msg, response.status_code) from e
             except (ValueError, json.JSONDecodeError) as exc:
                 raise VBaseAPIError(str(e), response.status_code) from exc
@@ -98,16 +101,16 @@ class VBaseAPIClient:
     def _prepare_file_upload(self, file: Union[str, Path, BinaryIO]) -> tuple:
         """
         Prepare a file for upload.
-        
+
         Args:
             file: File path (string or Path) or file-like object
-            
+
         Returns:
             Tuple of (filename, file_object, content_type) suitable for requests files parameter
         """
         if isinstance(file, (str, Path)):
             file_path = Path(file)
-            return (file_path.name, open(file_path, 'rb'), 'application/octet-stream')
+            return (file_path.name, open(file_path, "rb"), "application/octet-stream")
         else:
             # Assume it's a file-like object
             return file
@@ -115,14 +118,14 @@ class VBaseAPIClient:
     def _close_files(self, files: Dict[str, Any]) -> None:
         """
         Close any opened files in the files dictionary.
-        
+
         Args:
             files: Dictionary of file tuples from requests
         """
         for file_tuple in files.values():
-            if hasattr(file_tuple, '__iter__') and len(file_tuple) > 1:
+            if hasattr(file_tuple, "__iter__") and len(file_tuple) > 1:
                 file_obj = file_tuple[1]
-                if hasattr(file_obj, 'close'):
+                if hasattr(file_obj, "close"):
                     file_obj.close()
 
     # ========================================================================
@@ -156,24 +159,18 @@ class VBaseAPIClient:
         """
         params = {}
         if user_address is not None:
-            params['user_address'] = user_address
+            params["user_address"] = user_address
         if is_pinned is not None:
-            params['is_pinned'] = is_pinned
+            params["is_pinned"] = is_pinned
 
         response = self.session.get(
-            self._get_url('collections'),
-            params=params,
-            timeout=self.timeout
+            self._get_url("collections"), params=params, timeout=self.timeout
         )
         data = self._handle_response(response)
         return [Collection.from_dict(item) for item in data]
 
     def create_collection(
-        self,
-        name: str,
-        description: str,
-        cid: str = None,
-        is_pinned: bool = True
+        self, name: str, description: str, cid: str = None, is_pinned: bool = True
     ) -> Collection:
         """
         Create a new user collection.
@@ -202,16 +199,18 @@ class VBaseAPIClient:
                 print(f"Created: {collection.name}")
         """
         data = {
-            'name': name,
-            'cid': cid,
-            'description': description,
-            'is_pinned': is_pinned
+            "name": name,
+            "cid": cid,
+            "description": description,
+            "is_pinned": is_pinned,
         }
 
-        response = self.session.post(
-            self._get_url('collections'),
+        response = post_stamp_operation(
+            self.session,
+            self._get_url("collections"),
+            {"Authorization": f"Bearer {self.api_key}"},
             json=data,
-            timeout=self.timeout
+            timeout=self.timeout,
         )
         result = self._handle_response(response)
         return Collection.from_dict(result)
@@ -230,7 +229,7 @@ class VBaseAPIClient:
         collection_name: Optional[str] = None,
         store_stamped_file: bool = True,
         idempotent: bool = True,
-        idempotency_window: int = 3600
+        idempotency_window: int = 3600,
     ) -> Union[StampCreatedResponse, IdempotentStampResponse]:
         """
         Stamp a file, data, or CID.
@@ -256,7 +255,7 @@ class VBaseAPIClient:
         Raises:
             VBaseAPIError: If the request fails
             ValueError: If invalid parameters are provided
-        
+
         Example:
             .. code-block:: python
 
@@ -273,45 +272,51 @@ class VBaseAPIClient:
                 stamp = client.create_stamp(data_cid="Qm...")
         """
         if not any([file, data, data_cid]):
-            raise ValueError("At least one of 'file', 'data', or 'data_cid' must be provided")
+            raise ValueError(
+                "At least one of 'file', 'data', or 'data_cid' must be provided"
+            )
 
         if collection_cid and collection_name:
-            raise ValueError("Only one of 'collection_cid' or 'collection_name' can be specified")
+            raise ValueError(
+                "Only one of 'collection_cid' or 'collection_name' can be specified"
+            )
 
         form_data = {
-            'store_stamped_file': store_stamped_file,
-            'idempotent': idempotent,
-            'idempotency_window': idempotency_window
+            "store_stamped_file": store_stamped_file,
+            "idempotent": idempotent,
+            "idempotency_window": idempotency_window,
         }
 
         if data_cid:
-            form_data['data_cid'] = data_cid
+            form_data["data_cid"] = data_cid
         if collection_cid:
-            form_data['collection_cid'] = collection_cid
+            form_data["collection_cid"] = collection_cid
         if collection_name:
-            form_data['collection_name'] = collection_name
+            form_data["collection_name"] = collection_name
         if file_name:
-            form_data['file_name'] = file_name
+            form_data["file_name"] = file_name
 
         files = {}
 
         # Handle file parameter
         if file:
-            files['file'] = self._prepare_file_upload(file)
+            files["file"] = self._prepare_file_upload(file)
 
         # Handle data parameter
         if data:
             if isinstance(data, dict):
-                form_data['data'] = json.dumps(data)
+                form_data["data"] = json.dumps(data)
             else:
-                form_data['data'] = data
+                form_data["data"] = data
 
         try:
-            response = self.session.post(
-                self._get_url('stamps'),
+            response = post_stamp_operation(
+                self.session,
+                self._get_url("stamps"),
+                {"Authorization": f"Bearer {self.api_key}"},
                 data=form_data,
                 files=files if files else None,
-                timeout=self.timeout
+                timeout=self.timeout,
             )
             result = self._handle_response(response)
 
@@ -324,9 +329,7 @@ class VBaseAPIClient:
             self._close_files(files)
 
     def upload_stamped_file(
-        self,
-        collection_name: str,
-        file: Union[str, Path, BinaryIO]
+        self, collection_name: str, file: Union[str, Path, BinaryIO]
     ) -> StampCreatedResponse:
         """
         Upload a file that has been previously stamped.
@@ -353,20 +356,20 @@ class VBaseAPIClient:
                 )
                 print(f"Uploaded: {result.file_object.file_name}")
         """
-        form_data = {
-            'collection_name': collection_name
-        }
+        form_data = {"collection_name": collection_name}
 
         files = {}
 
-        files['file'] = self._prepare_file_upload(file)
+        files["file"] = self._prepare_file_upload(file)
 
         try:
-            response = self.session.post(
-                self._get_url('stamps/upload-stamped-file'),
+            response = post_stamp_operation(
+                self.session,
+                self._get_url("stamps/upload-stamped-file"),
+                {"Authorization": f"Bearer {self.api_key}"},
                 data=form_data,
                 files=files,
-                timeout=self.timeout
+                timeout=self.timeout,
             )
             result = self._handle_response(response)
             return StampCreatedResponse.from_dict(result)
@@ -374,9 +377,7 @@ class VBaseAPIClient:
             self._close_files(files)
 
     def verify_stamps(
-        self,
-        cids: List[str],
-        filter_by_user: bool = False
+        self, cids: List[str], filter_by_user: bool = False
     ) -> VerificationResult:
         """
         Verify one or more Content IDs (CIDs).
@@ -405,15 +406,10 @@ class VBaseAPIClient:
                 for stamp in result.stamp_list:
                     print(f"Found stamp at {stamp.timestamp}")
         """
-        data = {
-            'cids': cids,
-            'filter_by_user': filter_by_user
-        }
+        data = {"cids": cids, "filter_by_user": filter_by_user}
 
         response = self.session.post(
-            self._get_url('stamps/verify'),
-            json=data,
-            timeout=self.timeout
+            self._get_url("stamps/verify"), json=data, timeout=self.timeout
         )
         result = self._handle_response(response)
         return VerificationResult.from_dict(result)
@@ -438,10 +434,7 @@ class VBaseAPIClient:
                 user = client.get_current_user()
                 print(f"User email: {user.email}")
         """
-        response = self.session.get(
-            self._get_url('users/me'),
-            timeout=self.timeout
-        )
+        response = self.session.get(self._get_url("users/me"), timeout=self.timeout)
         result = self._handle_response(response)
         return AccountSettings.from_dict(result)
 
@@ -451,13 +444,13 @@ class VBaseAPIClient:
 
         Args:
             user_address: The user's blockchain address
-        
+
         Returns:
             AccountSettings for the specified user
-        
+
         Raises:
             VBaseAPIError: If the request fails or user not found
-        
+
         Example:
             .. code-block:: python
 
@@ -465,8 +458,7 @@ class VBaseAPIClient:
                 print(f"User name: {user.name}")
         """
         response = self.session.get(
-            self._get_url(f'users/{user_address}'),
-            timeout=self.timeout
+            self._get_url(f"users/{user_address}"), timeout=self.timeout
         )
         result = self._handle_response(response)
         return AccountSettings.from_dict(result)
@@ -486,9 +478,7 @@ class VBaseAPIClient:
 
 # Convenience function for quick client creation
 def create_client(
-    api_key: str,
-    base_url: str = VBaseAPIClient.DEFAULT_BASE_URL,
-    timeout: int = 30
+    api_key: str, base_url: str = VBaseAPIClient.DEFAULT_BASE_URL, timeout: int = 30
 ) -> VBaseAPIClient:
     """
     Create a vBase API client.
