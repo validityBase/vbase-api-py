@@ -4,6 +4,7 @@ import hashlib
 import threading
 import time
 import weakref
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from typing import Any
@@ -20,6 +21,7 @@ _RETRY_AFTER = "Retry-After"
 _IDEMPOTENT = "idempotent"
 _AUTHORIZATION = "Authorization"
 _FILE_CONTENT_INDEX = 1
+_DEFAULT_PORTS = {"http": 80, "https": 443}
 _registry_lock = threading.Lock()
 _user_locks: weakref.WeakValueDictionary = weakref.WeakValueDictionary()
 
@@ -29,9 +31,32 @@ def _retry_delay(value: str) -> float:
         if value.isascii() and value.isdigit():
             return float(int(value))
         retry_at = parsedate_to_datetime(value)
+        if retry_at.tzinfo is None:
+            retry_at = retry_at.replace(tzinfo=timezone.utc)
         return max(0, (retry_at - datetime.now(timezone.utc)).total_seconds())
     except (ValueError, TypeError, OverflowError):
         return _DEFAULT_RETRY_SECONDS
+
+
+def _file_offsets(files: Any) -> list[tuple[Any, int | None]]:
+    """Remember every multipart stream, including repeated names and list entries."""
+    offsets = []
+    entries = (
+        files.values()
+        if isinstance(files, Mapping)
+        else (entry[_FILE_CONTENT_INDEX] for entry in files)
+    )
+    for stream in entries:
+        stream = (
+            stream[_FILE_CONTENT_INDEX] if isinstance(stream, (tuple, list)) else stream
+        )
+        if hasattr(stream, "read"):
+            try:
+                offset = stream.tell()
+            except (AttributeError, OSError):
+                offset = None
+            offsets.append((stream, offset))
+    return offsets
 
 
 def post_stamp_operation(
@@ -46,7 +71,8 @@ def post_stamp_operation(
     parsed = urlsplit(url)
     key = (
         parsed.scheme.lower(),
-        parsed.netloc.lower(),
+        parsed.hostname,
+        parsed.port if parsed.port is not None else _DEFAULT_PORTS.get(parsed.scheme),
         hashlib.sha256(headers.get(_AUTHORIZATION, "").encode()).digest(),
     )
     with _registry_lock:
@@ -55,17 +81,7 @@ def post_stamp_operation(
             lock = threading.RLock()
             _user_locks[key] = lock
     with lock:
-        offsets = []
-        for stream in (kwargs.get("files") or {}).values():
-            stream = (
-                stream[_FILE_CONTENT_INDEX] if isinstance(stream, tuple) else stream
-            )
-            if hasattr(stream, "read"):
-                try:
-                    offset = stream.tell()
-                except (AttributeError, OSError):
-                    offset = None
-                offsets.append((stream, offset))
+        offsets = _file_offsets(kwargs.get("files") or {})
         for attempt in range(_MAX_ATTEMPTS):
             response = session.post(url, headers=headers, **kwargs)
             if response.status_code != _BUSY_STATUS:

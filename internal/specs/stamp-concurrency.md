@@ -13,3 +13,9 @@ VDT-896 guard supplies authoritative exclusion across processes and multiple
 keys for one user. Client-local queues do not establish distributed exclusion.
 Deploy these callers before or with VDT-896; do not enable server contention
 until callers use versions containing these changes.
+
+HTTP origins normalize default ports so explicit :443/:80 aliases share ownership.
+Multipart tuple/list entries and repeated file fields preserve their initial stream
+offsets. Obsolete asctime HTTP-date hints without a timezone are interpreted as UTC.
+
+Package metadata requires Python 3.11+, matching the documented runtime minimum.

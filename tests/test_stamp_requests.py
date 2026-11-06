@@ -4,6 +4,7 @@ import io
 import threading
 import unittest
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
 from vbase_api.stamp_requests import _retry_delay, post_stamp_operation
@@ -177,3 +178,90 @@ class StampRequestTests(unittest.TestCase):
             session, "https://example.test/stamps", {"Authorization": "Bearer test-a"}
         )
         session.post.assert_called_once()
+
+    def test_list_multipart_entries_replay_original_bytes(self):
+        """Multipart list forms preserve the same content after contention."""
+        for outer_list in (False, True):
+            with self.subTest(outer_list=outer_list):
+                stream = io.BytesIO(b"prefix-payload")
+                stream.seek(7)
+                files = (
+                    [("file", ["a.txt", stream])]
+                    if outer_list
+                    else {"file": ["a.txt", stream]}
+                )
+                payloads = []
+                replies = iter([response(409, "stamp_in_progress"), response(201)])
+
+                def send(*_args, **kwargs):
+                    entry = (
+                        kwargs["files"][0][1] if outer_list else kwargs["files"]["file"]
+                    )
+                    payloads.append(entry[1].read())
+                    return next(replies)
+
+                session = Mock()
+                session.post.side_effect = send
+                with patch("vbase_api.stamp_requests.time.sleep"):
+                    post_stamp_operation(
+                        session,
+                        "https://example.test/stamps",
+                        {"Authorization": "Bearer test-a"},
+                        files=files,
+                    )
+                self.assertEqual(payloads, [b"payload", b"payload"])
+
+    def test_asctime_retry_hint_uses_utc(self):
+        """Obsolete HTTP-date syntax without a zone still denotes UTC."""
+        with patch("vbase_api.stamp_requests.datetime") as clock:
+            clock.now.return_value = datetime(2026, 11, 6, 12, 0, tzinfo=timezone.utc)
+            self.assertEqual(_retry_delay("Fri Nov  6 12:00:30 2026"), 30)
+
+    def test_default_port_aliases_share_ownership(self):
+        """Equivalent HTTP origins cannot bypass the credential queue."""
+        for origin, alias in [
+            ("https://example.test", "https://example.test:443"),
+            ("http://example.test", "http://example.test:80"),
+        ]:
+            with self.subTest(origin=origin):
+                entered, release, attempted, second_entered = (
+                    threading.Event() for _ in range(4)
+                )
+
+                def first_send(*_args, **_kwargs):
+                    entered.set()
+                    if not release.wait(3):
+                        raise TimeoutError("test barrier")
+                    return response(201)
+
+                first, second = Mock(), Mock()
+                first.post.side_effect = first_send
+                second.post.side_effect = lambda *_args, **_kwargs: (
+                    second_entered.set(),
+                    response(201),
+                )[1]
+
+                def second_request():
+                    attempted.set()
+                    return post_stamp_operation(
+                        second,
+                        alias + "/collections",
+                        {"Authorization": "Bearer test-a"},
+                    )
+
+                with ThreadPoolExecutor(max_workers=2) as executor:
+                    one = executor.submit(
+                        post_stamp_operation,
+                        first,
+                        origin + "/stamps",
+                        {"Authorization": "Bearer test-a"},
+                    )
+                    self.assertTrue(entered.wait(3))
+                    two = executor.submit(second_request)
+                    try:
+                        self.assertTrue(attempted.wait(3))
+                        self.assertFalse(second_entered.wait(0.05))
+                    finally:
+                        release.set()
+                    one.result(timeout=3)
+                    two.result(timeout=3)
