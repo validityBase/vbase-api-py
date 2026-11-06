@@ -51,6 +51,7 @@ class APIClientTests(unittest.TestCase):
         self.assertEqual(collection.name, "Example")
         post.assert_called_once_with(
             "https://example.invalid/api/v1/collections",
+            headers={"Authorization": "Bearer test-only-key"},
             json={
                 "name": "Example",
                 "cid": None,

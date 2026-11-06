@@ -10,6 +10,10 @@ for prior changes.
 
 ## [Unreleased]
 
+### Changed
+
+- Require Python 3.11 or later and run compatibility checks on Python 3.11 and 3.12.
+
 ## [0.1.4] - 2026-10-26
 
 ### Added
