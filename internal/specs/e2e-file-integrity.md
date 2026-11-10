@@ -62,7 +62,9 @@ For both text and binary files, the live E2E test:
 
 ## Environment
 
-The live tests are skipped unless the required environment is present.
+Local runs skip live tests unless the required environment is present. In
+GitHub Actions, the app API compatibility test fails if its API key is missing;
+the client E2E workflow also validates its secrets before running tests.
 
 CI loads credential values from GitHub Actions secrets and non-secret live test
 configuration from GitHub Actions variables so the public package repository

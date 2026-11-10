@@ -21,7 +21,9 @@ class AppAPICompatibilityE2ETests(unittest.TestCase):
             "VBASE_API_KEY_CYPRESS"
         )
         if not api_key:
-            raise RuntimeError("Set VBASE_API_KEY for live compatibility tests.")
+            if os.environ.get("GITHUB_ACTIONS") == "true":
+                raise RuntimeError("Set VBASE_API_KEY for live compatibility tests.")
+            raise unittest.SkipTest("Set VBASE_API_KEY for live compatibility tests.")
         base_url = (
             os.environ.get("BASE_URL")
             or os.environ.get("VBASE_APP_BASE_URL")
