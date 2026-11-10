@@ -69,7 +69,8 @@ Do not restore a local `.github/actions/setup-python-deps` copy. Use `validityBa
 ### `.github/workflows/source-e2e.yml`
 - Runs daily, on pull requests, on pushes to `main`, and on manual
   `workflow_dispatch`.
-- Tests the checked-out source through the reusable file-integrity workflow.
+- Tests the checked-out source through the reusable live E2E workflow, including
+  the app API verification contract and file integrity.
   Skips forked and Dependabot pull requests because live E2E requires
   repository secrets.
 - The daily schedule runs on the default branch using the UTC cron declared
@@ -78,7 +79,8 @@ Do not restore a local `.github/actions/setup-python-deps` copy. Use `validityBa
 ### `.github/workflows/pypi-e2e.yml`
 - Runs daily and on manual `workflow_dispatch`. It does not run on PRs or
   ordinary `main` pushes.
-- Tests the latest stable PyPI package unless a published `release-tag` is
+- Tests the latest stable PyPI package against the app API and file storage
+  unless a published `release-tag` is
   supplied, in which case it tests that exact version using the tag's tests.
 - Exposes a reusable call with a required `release-tag` for the publication
   workflow. Secrets are inherited through each reusable-workflow call.
@@ -100,8 +102,9 @@ Do not restore a local `.github/actions/setup-python-deps` copy. Use `validityBa
 - Installs `requirements/e2e.txt` through `setup-python-deps@v1` with
   Python 3.12 and `require-hashes: "true"`, then either installs the checkout in
   editable mode (`install_source=source`) or installs the latest published
-  `vbase-api` package from PyPI (`install_source=pypi`), and runs
-  `python -m unittest tests.test_file_integrity_e2e -v`.
+  `vbase-api` package from PyPI (`install_source=pypi`), and discovers
+  `test_*_e2e.py`. Older release tags continue to run the tests available in
+  that tag's checkout.
 - Calls that supply a `release-tag` check out that tag's test suite. PyPI
   calls install the exact indexed version; artifact calls install the exact
   candidate wheel locally. Both remove the `v` prefix from the version.

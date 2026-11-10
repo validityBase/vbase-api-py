@@ -23,6 +23,16 @@ This repository owns Python client coverage for:
 
 - `VBaseAPIClient.create_stamp(...)`
 - `VBaseAPIClient.upload_stamped_file(...)`
+- `VBaseAPIClient.verify_stamps(...)` against unstamped and newly stamped CIDs
+
+`tests/test_app_api_compatibility_e2e.py` is the client-owned compatibility
+check. It calls the live app through the installed Python client and checks
+both an empty verification response and a complete stamp-and-verify cycle.
+The app PR workflow checks out this test from the client repository and runs it
+against the PR's Docker app with the latest published `vbase-api` package. The
+app's daily release workflow runs it against the selected deployed app; its
+production run disables stamp creation and verifies only an unused CID. The
+client's source PR and daily PyPI E2E workflows discover the same test.
 
 ## Covered Use Cases
 
@@ -107,6 +117,7 @@ rather than the repository checkout.
 
 | Requirement | Use Case | Test |
 | --- | --- | --- |
+| Python client parses empty and populated app verification responses | App API compatibility | `tests/test_app_api_compatibility_e2e.py` |
 | Client-library stamp-time upload preserves downloaded bytes for text and binary files | UC-A | `tests/test_file_integrity_e2e.py::VBaseAPIClientFileIntegrityE2ETests.test_create_stamp_with_storage_preserves_downloaded_file_bytes` |
 | Client-library stamp-time upload returns expected `object_cid` and collection `set_cid` | UC-A | `tests/test_file_integrity_e2e.py::VBaseAPIClientFileIntegrityE2ETests.test_create_stamp_with_storage_preserves_downloaded_file_bytes` |
 | Client-library manual stamped-file upload preserves downloaded bytes for text and binary files | UC-B | `tests/test_file_integrity_e2e.py::VBaseAPIClientFileIntegrityE2ETests.test_upload_stamped_file_preserves_downloaded_file_bytes` |
