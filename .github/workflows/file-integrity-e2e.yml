@@ -119,7 +119,7 @@ jobs:
             exit 1
           fi
 
-      - name: Run file-integrity E2E tests
+      - name: Run app API compatibility and file-integrity E2E tests
         env:
           VBASE_API_PACKAGE_SOURCE: ${{ matrix.install_source }}
           VBASE_API_KEY: ${{ secrets[matrix.api_key_secret] }}
@@ -129,4 +129,4 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
           AWS_REGION: ${{ vars.AWS_REGION }}
-        run: python -m unittest tests.test_file_integrity_e2e -v
+        run: python -m unittest discover -s tests -p 'test_*_e2e.py' -v
