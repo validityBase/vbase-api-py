@@ -22,8 +22,9 @@ when a client parser indexes that removed response key.
 - Mark `VerificationResult.display_timezone` deprecated in the model and
   client documentation and changelog. Direct callers to the timezone
   information in each receipt's `timestamp`. Do not add runtime warnings.
-- Account settings retains its existing contract. No dependency, version,
-  release, deployment, or downstream repository changes are part of this fix.
+- Account settings retains its existing contract. No dependency, package
+  version, or downstream repository changes are part of this fix. No release
+  or deployment is executed while preparing these workflow changes.
 
 ## Implementation plan
 
@@ -51,10 +52,21 @@ when a client parser indexes that removed response key.
    `tests.test_verification_response` alongside `tests.test_api_client` in
    the existing offline client-test command, and keep
    `internal/specs/github-actions.md` aligned.
-6. Schedule `.github/workflows/file-integrity-e2e.yml` to run daily on the
-   default branch, retaining the existing source/PyPI and operating-system
-   matrix, credential validation, and event-triggered runs. Keep trigger
-   policy in `internal/specs/github-actions.md` aligned.
+6. Create separate `source-e2e.yml` and `pypi-e2e.yml` entry workflows,
+   retaining shared test steps in `file-integrity-e2e.yml`. Source runs on
+   PRs, `main` pushes, daily schedules and manual dispatch. PyPI runs daily
+   and manually. Preserve the operating-system matrix and credential
+   validation. Keep trigger policy in
+   `internal/specs/github-actions.md` aligned.
+7. Make PyPI E2E reusable with a required `release-tag`. After a successful
+   upload, `publish-pypi.yml` calls it with the validated tag and inherited
+   secrets. Check out that tag's tests and install its exact PyPI version,
+   testing only the published package. Keep the E2E and release specifications
+   aligned. Do not publish or dispatch a release as validation.
+8. Gate PyPI upload on live E2E of the exact candidate distribution downloaded
+   from the build artifact. Install it without an index and assert it is
+   imported from the installation, then upload that same artifact only after
+   verification succeeds. Do not create an RC release as part of this check.
 
 ## Operational boundary
 

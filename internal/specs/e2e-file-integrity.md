@@ -6,8 +6,17 @@
 scenarios. The tests verify that the Python client's public stamping methods
 remain compatible with the app REST API and that stored file objects are
 byte-identical to the original source bytes. CI runs the same live E2E scenarios
-against both the checked-out source package and the latest published
-`vbase-api` package from PyPI.
+against the checked-out source package through `source-e2e.yml` on PRs,
+`main` pushes, daily schedules, and manual runs. A separate `pypi-e2e.yml`
+tests the latest published `vbase-api` package daily and on manual runs.
+After a successful PyPI upload, the publication workflow calls PyPI E2E
+against the exact released version using the release tag's test suite. Both
+entry workflows share the steps in `file-integrity-e2e.yml`.
+
+The publication workflow also runs the same suite against its built
+distribution before uploading. It installs the exact tagged version from the
+build artifact without querying a package index. Only a passing candidate
+allows publication of that same artifact; no RC package is uploaded to PyPI.
 
 The app repository owns Cypress coverage for the UI and direct app API flows.
 This repository owns Python client coverage for:
@@ -89,10 +98,10 @@ already covered by Cypress in the app repository. Direct S3 reads keep this repo
 focused on the Python client -> app REST API -> stored object contract without
 adding a test-only app endpoint.
 
-The workflow sets `VBASE_API_PACKAGE_SOURCE` to `source` or `pypi` for each
+The workflow sets `VBASE_API_PACKAGE_SOURCE` to `source`, `artifact`, or `pypi` for each
 matrix job. The test logs the imported package version/path and asserts that the
-PyPI matrix leg imports `vbase_api` from the installed package rather than the
-repository checkout.
+PyPI and artifact matrix legs import `vbase_api` from the installed package
+rather than the repository checkout.
 
 ## Traceability
 
@@ -103,4 +112,5 @@ repository checkout.
 | Client-library manual stamped-file upload preserves downloaded bytes for text and binary files | UC-B | `tests/test_file_integrity_e2e.py::VBaseAPIClientFileIntegrityE2ETests.test_upload_stamped_file_preserves_downloaded_file_bytes` |
 | Client-library manual stamped-file upload returns expected `object_cid` and collection `set_cid` | UC-B | `tests/test_file_integrity_e2e.py::VBaseAPIClientFileIntegrityE2ETests.test_upload_stamped_file_preserves_downloaded_file_bytes` |
 | File-integrity client tests run across Linux, macOS, and Windows | UC-A, UC-B | `.github/workflows/file-integrity-e2e.yml` |
-| Latest published `vbase-api` PyPI package remains compatible with the app REST API | UC-A, UC-B | `.github/workflows/file-integrity-e2e.yml` with `install_source=pypi` |
+| Latest published `vbase-api` PyPI package remains compatible with the app REST API | UC-A, UC-B | `.github/workflows/pypi-e2e.yml` |
+| Candidate distribution passes live E2E before upload | UC-A, UC-B | `.github/workflows/publish-pypi.yml` with `install-source=artifact` |
