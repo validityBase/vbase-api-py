@@ -10,6 +10,8 @@ for prior changes.
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-11-10
+
 ### Deprecated
 
 - `VerificationResult.display_timezone` is retained for compatibility. Use the
