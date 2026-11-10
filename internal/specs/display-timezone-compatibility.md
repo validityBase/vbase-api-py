@@ -46,8 +46,7 @@ when a client parser indexes that removed response key.
 4. Run offline regression tests and repository-declared checks, preserving
    unrelated formatting. Record unavailable checks and existing failures.
    Obtain independent fresh-context EGM review of the plan and completed
-   change before considering the implementation complete. Store review
-   evidence in `internal/agents/reviews/display-timezone/`.
+   change before considering the implementation complete.
 5. Modify `.github/workflows/python-compatibility.yml` to include
    `tests.test_verification_response` alongside `tests.test_api_client` in
    the existing offline client-test command, and keep
