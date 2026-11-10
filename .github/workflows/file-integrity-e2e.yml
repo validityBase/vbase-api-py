@@ -1,26 +1,32 @@
-name: File Integrity E2E
+name: Reusable File Integrity E2E
 
 on:
-  pull_request:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      install-source:
+        description: Package install source (source, artifact, or pypi).
+        type: string
+        required: true
+      release-tag:
+        description: Release tag for candidate artifacts or an exact PyPI version.
+        type: string
+        required: false
+        default: ''
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   file-integrity-e2e:
-    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]') }}
-    name: Python client file integrity
+    name: ${{ inputs.install-source }} file integrity
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       max-parallel: 1
       matrix:
         os: [ubuntu-24.04, macos-latest, windows-latest]
-        install_source: [source, pypi]
+        install_source: ["${{ inputs.install-source }}"]
         # GitHub Actions augments each base os/install_source combination with
         # the matching os-specific api_key_secret instead of adding extra jobs.
         include:
@@ -35,6 +41,8 @@ jobs:
       - name: Checkout repository
         # v5
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        with:
+          ref: ${{ inputs.release-tag && format('refs/tags/{0}', inputs.release-tag) || github.ref }}
 
       - name: Install E2E dependencies
         uses: validityBase/vbase-github-actions/.github/actions/setup-python-deps@v1
@@ -48,11 +56,35 @@ jobs:
         if: ${{ matrix.install_source == 'source' }}
         run: python -m pip install --no-deps --no-build-isolation -e .
 
+      - name: Download candidate distributions
+        if: ${{ matrix.install_source == 'artifact' }}
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+        with:
+          name: python-package-distributions
+          path: ${{ runner.temp }}/candidate-dist
+
+      - name: Install candidate distribution
+        if: ${{ matrix.install_source == 'artifact' }}
+        env:
+          RELEASE_TAG: ${{ inputs.release-tag }}
+          CANDIDATE_DIST_DIR: ${{ runner.temp }}/candidate-dist
+        shell: bash
+        run: |
+          python -m pip install --no-index --no-deps --only-binary=:all: --find-links "$CANDIDATE_DIST_DIR" "vbase-api==${RELEASE_TAG#v}"
+
       - name: Install package from PyPI
         if: ${{ matrix.install_source == 'pypi' }}
         # Intentionally resolve dependencies from PyPI to test the published
         # package the same way users install it.
-        run: python -m pip install --upgrade vbase-api
+        env:
+          RELEASE_TAG: ${{ inputs.release-tag }}
+        shell: bash
+        run: |
+          if [ -n "$RELEASE_TAG" ]; then
+            python -m pip install --upgrade --no-cache-dir "vbase-api==${RELEASE_TAG#v}"
+          else
+            python -m pip install --upgrade vbase-api
+          fi
 
       - name: Validate live E2E secrets
         env:

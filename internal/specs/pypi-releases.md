@@ -19,6 +19,16 @@ The upload job remains in this repository's workflow so its existing PyPI
 trusted-publisher identity is preserved. It downloads the validated artifact and calls the pinned PyPA publisher
 directly; nesting the publisher in a composite resolves the wrong Docker image. GitHub Release creation depends on successful upload.
 
+Before upload, the release workflow installs the candidate distribution from
+the build artifact and runs the shared live E2E suite. Failure blocks upload.
+Publication then uses that same artifact; no rebuild or public RC upload is
+needed for candidate verification.
+
+Successful upload also starts `pypi-e2e.yml` with the validated
+release tag. This checks that exact version from PyPI against the live API and
+stored-file backend across the existing OS matrix. A failed E2E check fails the
+publication workflow; the uploaded package remains published.
+
 The shared contract defines release behavior and validation; it is not copied
 into this repository. Package-specific settings are listed above.
 

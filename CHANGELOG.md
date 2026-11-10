@@ -10,6 +10,16 @@ for prior changes.
 
 ## [Unreleased]
 
+### Deprecated
+
+- `VerificationResult.display_timezone` is retained for compatibility. Use the
+  timezone information in each receipt's `timestamp` instead.
+
+### Fixed
+
+- Accept stamp verification responses without `display_timezone`, returning
+  `None` for the legacy attribute while preserving values from older APIs.
+
 ## [0.1.4] - 2026-10-26
 
 ### Added

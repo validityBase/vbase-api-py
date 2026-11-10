@@ -91,9 +91,9 @@ def _log_and_assert_package_source() -> None:
                 "Source-install E2E run imported vbase_api outside the checkout: "
                 f"{package_path}"
             )
-    elif install_source == "pypi" and package_in_repo:
+    elif install_source in ("pypi", "artifact") and package_in_repo:
         raise AssertionError(
-            "PyPI-install E2E run imported vbase_api from the checkout instead of "
+            f"{install_source}-install E2E run imported vbase_api from the checkout instead of "
             f"site-packages: {package_path}"
         )
 

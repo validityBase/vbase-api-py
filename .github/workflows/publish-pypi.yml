@@ -25,7 +25,7 @@ jobs:
       package-name: vbase-api
       release-tag: ${{ inputs.release-tag }}
   publish-to-pypi:
-    needs: build
+    needs: [build, verify-distributions]
     runs-on: ubuntu-24.04
     environment:
       name: pypi
@@ -42,6 +42,16 @@ jobs:
     - uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b
       with:
         packages-dir: dist
+  verify-distributions:
+    needs: build
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/file-integrity-e2e.yml
+    with:
+      install-source: artifact
+      release-tag: ${{ inputs.release-tag || github.ref_name }}
+    secrets: inherit
   github-release:
     needs: publish-to-pypi
     permissions:
@@ -50,3 +60,12 @@ jobs:
     uses: validityBase/vbase-github-actions/.github/workflows/github-python-release.yml@7c910e039185487d620b26ae06cfa83f408be5eb
     with:
       release-tag: ${{ inputs.release-tag }}
+  verify-pypi:
+    needs: publish-to-pypi
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/pypi-e2e.yml
+    with:
+      release-tag: ${{ inputs.release-tag || github.ref_name }}
+    secrets: inherit

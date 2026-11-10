@@ -1,0 +1,30 @@
+name: PyPI E2E
+
+on:
+  schedule:
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+    inputs:
+      release-tag:
+        description: Published release tag; leave empty to test the latest PyPI version.
+        type: string
+        required: false
+        default: ''
+  workflow_call:
+    inputs:
+      release-tag:
+        description: Published release tag to verify from PyPI.
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  pypi-e2e:
+    uses: ./.github/workflows/file-integrity-e2e.yml
+    with:
+      install-source: pypi
+      release-tag: ${{ inputs.release-tag }}
+    secrets: inherit
