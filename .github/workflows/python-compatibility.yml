@@ -41,4 +41,4 @@ jobs:
         run: python -c "import vbase_api"
 
       - name: Run client tests
-        run: python -m unittest tests.test_api_client -v
+        run: python -m unittest tests.test_api_client tests.test_verification_response -v

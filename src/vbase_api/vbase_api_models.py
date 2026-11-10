@@ -167,12 +167,15 @@ class StampCreatedResponse:
 class VerificationResult:
     """
     Result from verifying CIDs.
+
+    The display_timezone attribute is deprecated and retained for compatibility.
+    Use the timezone information in each receipt's timestamp instead.
     
     Attributes:
-        display_timezone: Timezone for display
+        display_timezone: Deprecated legacy API timezone, or None when absent
         stamp_list: List of commitment receipts for verified stamps
     """
-    display_timezone: str
+    display_timezone: Optional[str]
     stamp_list: List[CommitmentReceipt]
 
     @classmethod
@@ -184,7 +187,7 @@ class VerificationResult:
         ]
         
         return cls(
-            display_timezone=data['display_timezone'],
+            display_timezone=data.get("display_timezone"),
             stamp_list=stamp_list
         )
 
