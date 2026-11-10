@@ -51,6 +51,10 @@ when a client parser indexes that removed response key.
    `tests.test_verification_response` alongside `tests.test_api_client` in
    the existing offline client-test command, and keep
    `internal/specs/github-actions.md` aligned.
+6. Schedule `.github/workflows/file-integrity-e2e.yml` to run daily on the
+   default branch, retaining the existing source/PyPI and operating-system
+   matrix, credential validation, and event-triggered runs. Keep trigger
+   policy in `internal/specs/github-actions.md` aligned.
 
 ## Operational boundary
 

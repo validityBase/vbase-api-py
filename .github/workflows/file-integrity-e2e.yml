@@ -1,6 +1,8 @@
 name: File Integrity E2E
 
 on:
+  schedule:
+    - cron: '17 5 * * *'
   pull_request:
   push:
     branches:

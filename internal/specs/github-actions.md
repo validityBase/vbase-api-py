@@ -59,10 +59,13 @@ Do not restore a local `.github/actions/setup-python-deps` copy. Use `validityBa
   static PyPI token. Bot-created PR workflows may require maintainer approval.
 
 ### `.github/workflows/file-integrity-e2e.yml`
-- Runs on pull requests, pushes to `main`, and manual `workflow_dispatch`.
+- Runs daily, on pull requests, on pushes to `main`, and on manual
+  `workflow_dispatch`.
 - Skips forked pull requests because the live E2E job requires repository
   secrets. Same-repository pull requests, pushes, and manual runs execute the
-  job.
+  job. Scheduled runs execute daily on the default branch using the UTC cron
+  declared in the workflow. The daily schedule becomes active after the
+  workflow change merges into the default branch.
 - Uses a matrix over `ubuntu-24.04`, `macos-latest`, and `windows-latest`, plus
   `source` and `pypi` install sources, to cover the client-library platform
   matrix and the latest published PyPI package.
