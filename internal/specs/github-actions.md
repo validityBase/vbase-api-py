@@ -21,8 +21,8 @@ Do not restore a local `.github/actions/setup-python-deps` copy. Use `validityBa
 
 ### `.github/workflows/python-compatibility.yml`
 - Runs on pull requests, pushes to `main`, and manual `workflow_dispatch`.
-- Resolves the published runtime ranges from `requirements.in` across the
-  Python versions declared in the workflow matrix.
+- Resolves the published runtime ranges from `requirements.in` on Python 3.11
+  and 3.12, matching the package's minimum supported Python version.
 - Builds and installs the package, checks dependency consistency with
   `python -m pip check`, and verifies that `vbase_api` imports successfully.
 - Runs offline client request/response and verification-response
