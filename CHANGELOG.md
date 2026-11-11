@@ -10,6 +10,11 @@ for prior changes.
 
 ## [Unreleased]
 
+### Changed
+
+- Require Python 3.11 or newer; Python 3.8–3.10 are no longer supported
+  ([#51](https://github.com/validityBase/vbase-api-py/pull/51)).
+
 ## [0.1.5] - 2026-11-10
 
 ### Deprecated
