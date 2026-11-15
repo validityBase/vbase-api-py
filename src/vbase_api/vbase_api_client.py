@@ -52,7 +52,7 @@ class VBaseAPIClient:
         .. code-block:: python
 
             client = VBaseAPIClient(api_key="your-bearer-token")
-            collections = client.list_collections()
+            collections = client.get_collections()
             stamp = client.create_stamp(data={"hello": "world"})
     """
 
@@ -235,7 +235,7 @@ class VBaseAPIClient:
         """
         Stamp a file, data, or CID.
 
-        At least one of 'file', 'data', or 'data_cid' must be provided.
+        Select exactly one content source: 'file', nonempty 'data', or 'data_cid'.
         If you want to add the stamp to a collection,
         one collection parameter (collection_cid or collection_name) should be specified.
 
@@ -266,11 +266,16 @@ class VBaseAPIClient:
 
                 # Stamp a file
                 stamp = client.create_stamp(file="document.pdf", collection_name="Documents")
-                if stamp.file_object:
-                    print(f"File: {stamp.file_object.file_name}")
+                file_object = getattr(stamp, "file_object", None)
+                if file_object:
+                    print(f"File: {file_object.file_name}")
 
-                # Stamp an existing CID
-                stamp = client.create_stamp(data_cid="Qm...")
+                # Calculate and stamp a SHA3-256 CID without uploading the file.
+                import hashlib
+                from pathlib import Path
+
+                cid = "0x" + hashlib.sha3_256(Path("document.pdf").read_bytes()).hexdigest()
+                stamp = client.create_stamp(data_cid=cid, store_stamped_file=False)
         """
         if not any([file, data, data_cid]):
             raise ValueError("At least one of 'file', 'data', or 'data_cid' must be provided")
