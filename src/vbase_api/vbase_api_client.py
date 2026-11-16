@@ -267,8 +267,9 @@ class VBaseAPIClient:
                 stamp = client.create_stamp(data={"hello": "world"})
                 print(f"Object CID: {stamp.commitment_receipt.object_cid}")
 
-                # Stamp a file. Idempotent (200) responses have no file_object,
-                # and file_name is empty when the file was not stored.
+                # Stamp a file. Check file_object before using it: idempotent (200)
+                # responses do not include it, and it may be None or have an empty
+                # file_name when no file was stored.
                 stamp = client.create_stamp(file="document.pdf", collection_name="Documents")
                 file_object = getattr(stamp, "file_object", None)
                 if file_object and file_object.file_name:
