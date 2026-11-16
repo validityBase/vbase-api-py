@@ -1,7 +1,7 @@
 vBase Python Software Development Kit (SDK)
-Copyright 2023-2024 PIT Labs, Inc. or its affiliates. All Rights Reserved.
+Copyright 2023-2026 PIT Labs Inc. or its affiliates. All Rights Reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License”), except
+Licensed under the Apache License, Version 2.0 (the "License"), except
 that the use of services to which certain application programming
 interfaces (each, an "API") connect requires that the user first obtain
 a license for the use of the APIs from PIT Labs
