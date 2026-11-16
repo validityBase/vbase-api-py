@@ -52,7 +52,7 @@ class VBaseAPIClient:
         .. code-block:: python
 
             client = VBaseAPIClient(api_key="your-bearer-token")
-            collections = client.list_collections()
+            collections = client.get_collections()
             stamp = client.create_stamp(data={"hello": "world"})
     """
 
@@ -235,7 +235,7 @@ class VBaseAPIClient:
         """
         Stamp a file, data, or CID.
 
-        At least one of 'file', 'data', or 'data_cid' must be provided.
+        Select exactly one content source: ``file``, nonempty ``data``, or ``data_cid``.
         If you want to add the stamp to a collection,
         one collection parameter (collection_cid or collection_name) should be specified.
 
@@ -243,7 +243,8 @@ class VBaseAPIClient:
             file: Binary file to be stamped (path or file-like object)
             data: Inline text or JSON data to be stamped (string or dict)
             file_name: Custom file name for data (only used when 'data' is provided)
-            data_cid: Existing CID to stamp
+            data_cid: CID to stamp: ``0x`` followed by 64 hexadecimal characters,
+                such as a file's SHA3-256 hash (see the example below)
             collection_cid: Optional CID of collection to group stamped object
             collection_name: Optional name of collection (case-insensitive)
             store_stamped_file: Whether to store the stamped file (default: True)
@@ -254,23 +255,30 @@ class VBaseAPIClient:
             StampCreatedResponse (201 status) or IdempotentStampResponse (200 status)
 
         Raises:
-            VBaseAPIError: If the request fails
-            ValueError: If invalid parameters are provided
-        
+            VBaseAPIError: If the request fails or has more than one content source
+            ValueError: If no content source or both collection parameters are given
+
         Example:
             .. code-block:: python
+
+                import hashlib
 
                 # Stamp inline data
                 stamp = client.create_stamp(data={"hello": "world"})
                 print(f"Object CID: {stamp.commitment_receipt.object_cid}")
 
-                # Stamp a file
+                # Stamp a file. Check file_object before using it: idempotent (200)
+                # responses do not include it, and it may be None or have an empty
+                # file_name when no file was stored.
                 stamp = client.create_stamp(file="document.pdf", collection_name="Documents")
-                if stamp.file_object:
-                    print(f"File: {stamp.file_object.file_name}")
+                file_object = getattr(stamp, "file_object", None)
+                if file_object and file_object.file_name:
+                    print(f"File: {file_object.file_name}")
 
-                # Stamp an existing CID
-                stamp = client.create_stamp(data_cid="Qm...")
+                # Stamp a file's SHA3-256 CID. Only the CID is sent; the file stays local.
+                with open("dataset.csv", "rb") as f:
+                    cid = "0x" + hashlib.file_digest(f, "sha3_256").hexdigest()
+                stamp = client.create_stamp(data_cid=cid)
         """
         if not any([file, data, data_cid]):
             raise ValueError("At least one of 'file', 'data', or 'data_cid' must be provided")
@@ -351,7 +359,8 @@ class VBaseAPIClient:
                     collection_name="My Collection",
                     file="stamped_document.pdf"
                 )
-                print(f"Uploaded: {result.file_object.file_name}")
+                if result.file_object:
+                    print(f"Uploaded: {result.file_object.file_name}")
         """
         form_data = {
             'collection_name': collection_name

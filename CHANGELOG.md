@@ -10,6 +10,15 @@ for prior changes.
 
 ## [Unreleased]
 
+### Fixed
+
+- Correct the `VBaseAPIClient`, `create_stamp`, and `upload_stamped_file`
+  docstrings and examples: call `get_collections`, check `file_object` before
+  reading it, state that `create_stamp` takes exactly one content source and
+  which error each invalid call raises, and show `data_cid` as `0x` plus a
+  file's SHA3-256 hex digest
+  ([#58](https://github.com/validityBase/vbase-api-py/pull/58)).
+
 ## [0.2.0] - 2026-11-11
 
 ### Changed
