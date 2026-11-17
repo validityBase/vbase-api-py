@@ -94,6 +94,10 @@ Do not restore a local `.github/actions/setup-python-deps` copy. Use `validityBa
   appear in separately named workflows.
 - Runs the matrix with `max-parallel: 1` to preserve the current sequential
   execution behavior while keeping platform and package-source coverage.
+- Queues live E2E jobs from all callers in the repository through the same
+  `vbase-api-live-stamp-e2e` concurrency group. `queue: max` retains waiting
+  jobs when overlapping source, PyPI, or release runs share stamp users; the
+  default single pending slot would cancel older waiting jobs.
 - Maps each OS job to a dedicated staging API key secret, then exposes that key
   to the test process as `VBASE_API_KEY`:
   `FILE_INTEGRITY_E2E_VBASE_API_KEY_UBUNTU`,
