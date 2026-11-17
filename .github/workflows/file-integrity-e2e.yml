@@ -21,6 +21,11 @@ jobs:
   file-integrity-e2e:
     name: ${{ inputs.install-source }} file integrity
     runs-on: ${{ matrix.os }}
+    # Source, PyPI, and release calls share staging stamp users across runs.
+    concurrency:
+      group: vbase-api-live-stamp-e2e
+      cancel-in-progress: false
+      queue: max
     strategy:
       fail-fast: false
       max-parallel: 1
