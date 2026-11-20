@@ -118,12 +118,18 @@ class VBaseAPIClient:
                 raise VBaseAPIError(
                     str(e), response.status_code, retry_after=retry_after
                 ) from e
+            error_code = error_data.get('error_code')
+            commitment_receipt = error_data.get('commitment_receipt')
             raise VBaseAPIError(
                 error_data.get('error', str(e)),
                 response.status_code,
-                error_code=error_data.get('error_code'),
+                error_code=error_code if isinstance(error_code, str) else None,
                 retry_after=retry_after,
-                commitment_receipt=error_data.get('commitment_receipt'),
+                commitment_receipt=(
+                    commitment_receipt
+                    if isinstance(commitment_receipt, dict)
+                    else None
+                ),
             ) from e
         except requests.exceptions.RequestException as e:
             raise VBaseAPIError(f"Request failed: {str(e)}") from e

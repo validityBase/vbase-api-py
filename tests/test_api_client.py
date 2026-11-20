@@ -152,6 +152,21 @@ class APIClientTests(unittest.TestCase):
         self.assertEqual(raised.exception.status_code, 429)
         self.assertEqual(raised.exception.retry_after, "2")
 
+    def test_malformed_error_metadata_types_are_ignored(self):
+        with patch.object(
+            self.client.session,
+            "get",
+            return_value=self.response(
+                500, {"error": "Boom", "error_code": 5, "commitment_receipt": [1]}
+            ),
+        ):
+            with self.assertRaises(vbase_api.VBaseAPIError) as raised:
+                self.client.get_collections()
+
+        self.assertEqual(str(raised.exception), "[500] Boom")
+        self.assertIsNone(raised.exception.error_code)
+        self.assertIsNone(raised.exception.commitment_receipt)
+
     def test_stamp_in_progress_error_contract(self):
         with patch.object(
             self.client.session,
