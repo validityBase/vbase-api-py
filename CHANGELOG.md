@@ -13,7 +13,9 @@ for prior changes.
 ### Added
 
 - Expose API error codes, `Retry-After`, and commitment receipts on
-  `VBaseAPIError` without changing existing exception construction.
+  `VBaseAPIError` as keyword-only attributes without changing existing
+  exception construction. `Retry-After` is also preserved when the error body
+  is not a JSON object.
 
 ### Fixed
 

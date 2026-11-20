@@ -122,6 +122,36 @@ class APIClientTests(unittest.TestCase):
         self.assertIsNone(error.retry_after)
         self.assertIsNone(error.commitment_receipt)
 
+    def test_api_error_metadata_is_keyword_only(self):
+        with self.assertRaises(TypeError):
+            vbase_api.VBaseAPIError("Busy", 409, "stamp_in_progress")
+
+    def test_retry_after_preserved_for_non_json_error_body(self):
+        response = requests.Response()
+        response.status_code = 503
+        response._content = b"<html>Service Unavailable</html>"
+        response.headers["Retry-After"] = "30"
+        with patch.object(self.client.session, "get", return_value=response):
+            with self.assertRaises(vbase_api.VBaseAPIError) as raised:
+                self.client.get_collections()
+
+        self.assertEqual(raised.exception.status_code, 503)
+        self.assertEqual(raised.exception.retry_after, "30")
+        self.assertIsNone(raised.exception.error_code)
+        self.assertIsNone(raised.exception.commitment_receipt)
+
+    def test_retry_after_preserved_for_non_object_json_error_body(self):
+        with patch.object(
+            self.client.session,
+            "get",
+            return_value=self.response(429, [], {"Retry-After": "2"}),
+        ):
+            with self.assertRaises(vbase_api.VBaseAPIError) as raised:
+                self.client.get_collections()
+
+        self.assertEqual(raised.exception.status_code, 429)
+        self.assertEqual(raised.exception.retry_after, "2")
+
     def test_stamp_in_progress_error_contract(self):
         with patch.object(
             self.client.session,
@@ -159,9 +189,7 @@ class APIClientTests(unittest.TestCase):
             with self.assertRaises(vbase_api.VBaseAPIError) as raised:
                 self.client.create_stamp(data_cid="0xobject")
         self.assertEqual(raised.exception.status_code, 503)
-        self.assertEqual(
-            raised.exception.error_code, "operation_guard_unavailable"
-        )
+        self.assertEqual(raised.exception.error_code, "operation_guard_unavailable")
         self.assertEqual(raised.exception.retry_after, "10")
         self.assertEqual(raised.exception.commitment_receipt, self.receipt)
 

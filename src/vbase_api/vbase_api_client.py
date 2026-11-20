@@ -23,12 +23,23 @@ from .vbase_api_models import (
 )
 
 class VBaseAPIError(Exception):
-    """Base exception for vBase API errors."""
+    """
+    Base exception for vBase API errors.
+
+    Attributes:
+        message: Human-readable error message.
+        status_code: HTTP status code, if the error came from an HTTP response.
+        error_code: Machine-readable error code from the response body, if any.
+        retry_after: Raw ``Retry-After`` response header value, if any.
+        commitment_receipt: Raw commitment receipt mapping from the response
+            body, if any.
+    """
 
     def __init__(
         self,
         message: str,
         status_code: Optional[int] = None,
+        *,
         error_code: Optional[str] = None,
         retry_after: Optional[str] = None,
         commitment_receipt: Optional[dict] = None,
@@ -96,20 +107,24 @@ class VBaseAPIClient:
             response.raise_for_status()
             return response.json()
         except requests.exceptions.HTTPError as e:
+            retry_after = response.headers.get('Retry-After')
             try:
                 error_data = response.json()
-                if not isinstance(error_data, dict):
-                    raise VBaseAPIError(str(e), response.status_code) from e
-                error_msg = error_data.get('error', str(e))
-                raise VBaseAPIError(
-                    error_msg,
-                    response.status_code,
-                    error_code=error_data.get('error_code'),
-                    retry_after=response.headers.get('Retry-After'),
-                    commitment_receipt=error_data.get('commitment_receipt'),
-                ) from e
             except (ValueError, json.JSONDecodeError) as exc:
-                raise VBaseAPIError(str(e), response.status_code) from exc
+                raise VBaseAPIError(
+                    str(e), response.status_code, retry_after=retry_after
+                ) from exc
+            if not isinstance(error_data, dict):
+                raise VBaseAPIError(
+                    str(e), response.status_code, retry_after=retry_after
+                ) from e
+            raise VBaseAPIError(
+                error_data.get('error', str(e)),
+                response.status_code,
+                error_code=error_data.get('error_code'),
+                retry_after=retry_after,
+                commitment_receipt=error_data.get('commitment_receipt'),
+            ) from e
         except requests.exceptions.RequestException as e:
             raise VBaseAPIError(f"Request failed: {str(e)}") from e
 
