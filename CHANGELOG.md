@@ -10,6 +10,13 @@ for prior changes.
 
 ## [Unreleased]
 
+### Added
+
+- Expose API error codes, `Retry-After`, and commitment receipts on
+  `VBaseAPIError` as keyword-only attributes without changing existing
+  exception construction. `Retry-After` is also preserved when the error body
+  is not a JSON object.
+
 ### Fixed
 
 - Correct the `VBaseAPIClient`, `create_stamp`, and `upload_stamped_file`
