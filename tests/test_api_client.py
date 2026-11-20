@@ -27,10 +27,11 @@ class APIClientTests(unittest.TestCase):
         }
 
     @staticmethod
-    def response(status, payload):
+    def response(status, payload, headers=None):
         response = requests.Response()
         response.status_code = status
         response._content = json.dumps(payload).encode("utf-8")
+        response.headers.update(headers or {})
         return response
 
     def test_collection_request_and_response(self):
@@ -101,6 +102,68 @@ class APIClientTests(unittest.TestCase):
                 self.client.get_collections()
         self.assertEqual(raised.exception.status_code, 403)
         self.assertEqual(str(raised.exception), "[403] Access denied")
+
+    def test_api_error_rejects_non_object_json_without_leaking_attribute_error(self):
+        with patch.object(
+            self.client.session,
+            "get",
+            return_value=self.response(503, []),
+        ):
+            with self.assertRaises(vbase_api.VBaseAPIError) as raised:
+                self.client.get_collections()
+
+        self.assertEqual(raised.exception.status_code, 503)
+
+    def test_api_error_two_argument_construction_remains_supported(self):
+        error = vbase_api.VBaseAPIError("Access denied", 403)
+
+        self.assertEqual(str(error), "[403] Access denied")
+        self.assertIsNone(error.error_code)
+        self.assertIsNone(error.retry_after)
+        self.assertIsNone(error.commitment_receipt)
+
+    def test_stamp_in_progress_error_contract(self):
+        with patch.object(
+            self.client.session,
+            "post",
+            return_value=self.response(
+                409,
+                {
+                    "error": "Stamp is already in progress",
+                    "error_code": "stamp_in_progress",
+                },
+                {"Retry-After": "5"},
+            ),
+        ):
+            with self.assertRaises(vbase_api.VBaseAPIError) as raised:
+                self.client.create_stamp(data_cid="0xobject")
+        self.assertEqual(raised.exception.status_code, 409)
+        self.assertEqual(raised.exception.error_code, "stamp_in_progress")
+        self.assertEqual(raised.exception.retry_after, "5")
+        self.assertIsNone(raised.exception.commitment_receipt)
+
+    def test_operation_guard_unavailable_error_contract_with_receipt(self):
+        with patch.object(
+            self.client.session,
+            "post",
+            return_value=self.response(
+                503,
+                {
+                    "error": "Operation guard is unavailable",
+                    "error_code": "operation_guard_unavailable",
+                    "commitment_receipt": self.receipt,
+                },
+                {"Retry-After": "10"},
+            ),
+        ):
+            with self.assertRaises(vbase_api.VBaseAPIError) as raised:
+                self.client.create_stamp(data_cid="0xobject")
+        self.assertEqual(raised.exception.status_code, 503)
+        self.assertEqual(
+            raised.exception.error_code, "operation_guard_unavailable"
+        )
+        self.assertEqual(raised.exception.retry_after, "10")
+        self.assertEqual(raised.exception.commitment_receipt, self.receipt)
 
 
 if __name__ == "__main__":
