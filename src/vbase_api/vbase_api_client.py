@@ -11,6 +11,7 @@ Swagger: https://app.vbase.com/swagger/
 import json
 from pathlib import Path
 from typing import Any, BinaryIO, Callable, Dict, List, Optional, TypeVar, Union
+from urllib.parse import parse_qs, urlsplit
 
 import requests
 from tenacity import (
@@ -297,6 +298,13 @@ class VBaseAPIClient:
         if is_pinned is not None:
             params["is_pinned"] = is_pinned
 
+        collections, _ = self._get_collection_page(params)
+        return collections
+
+    def _get_collection_page(
+        self, params: dict[str, Any]
+    ) -> tuple[list[Collection], requests.Response]:
+        """Fetch and decode one page of collections."""
         response = self._request(
             "GET",
             "collections",
@@ -304,7 +312,7 @@ class VBaseAPIClient:
             params=params,
         )
         data = self._handle_response(response)
-        return [Collection.from_dict(item) for item in data]
+        return [Collection.from_dict(item) for item in data], response
 
     def _find_matching_collection(
         self,
@@ -315,17 +323,33 @@ class VBaseAPIClient:
         is_pinned: bool,
     ) -> Optional[Collection]:
         """Find a collection matching a create request after an uncertain result."""
-        for collection in self.get_collections():
-            if collection.name != name:
-                continue
-            if cid is not None and collection.cid.lower() != cid.lower():
-                continue
-            if collection.description != description:
-                continue
-            if collection.is_pinned != is_pinned:
-                continue
-            return collection
-        return None
+        params: dict[str, Any] = {}
+        while True:
+            collections, response = self._get_collection_page(params)
+            for collection in collections:
+                if (
+                    collection.name == name
+                    and (cid is None or collection.cid.lower() == cid.lower())
+                    and collection.description == description
+                    and collection.is_pinned == is_pinned
+                ):
+                    return collection
+
+            next_link = response.links.get("next")
+            if next_link is None:
+                return None
+
+            # Use only the offset from the Link header. Keep the authenticated
+            # request on the configured collections endpoint.
+            try:
+                query = parse_qs(urlsplit(next_link["url"]).query)
+                (offset_value,) = query.get("offset", [])
+                next_offset = int(offset_value)
+            except (KeyError, ValueError) as exc:
+                raise VBaseAPIError("Invalid collection pagination link") from exc
+            if next_offset <= params.get("offset", 0):
+                raise VBaseAPIError("Collection pagination offset did not advance")
+            params = {"offset": next_offset}
 
     def create_collection(
         self, name: str, description: str, cid: str = None, is_pinned: bool = True

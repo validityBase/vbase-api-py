@@ -310,6 +310,57 @@ class VBaseAPIClientRetryTests(unittest.TestCase):
         methods = [call.args[0] for call in self.client.session.request.call_args_list]
         self.assertEqual(methods, ["POST", "GET"])
 
+    def test_collection_on_second_page_prevents_repeating_create(self):
+        first_page = make_response(200, [collection_payload(name="Other")])
+        first_page.headers["Link"] = '</api/v1/collections?offset=10000>; rel="next"'
+        self.client.session.request.side_effect = [
+            make_response(503, {"error": "temporarily unavailable"}),
+            first_page,
+            make_response(200, [collection_payload()]),
+        ]
+
+        collection = self.client.create_collection("Reports", "Test collection")
+
+        self.assertEqual(collection.name, "Reports")
+        requests_sent = self.client.session.request.call_args_list
+        self.assertEqual(
+            [request.args[0] for request in requests_sent], ["POST", "GET", "GET"]
+        )
+        self.assertEqual(
+            requests_sent[2].args[1], "https://example.test/api/v1/collections"
+        )
+        self.assertEqual(requests_sent[2].kwargs["params"], {"offset": 10000})
+
+    def test_collection_page_failure_prevents_repeating_create(self):
+        first_page = make_response(200, [])
+        first_page.headers["Link"] = '</api/v1/collections?offset=10000>; rel="next"'
+        self.client.session.request.side_effect = [
+            make_response(503, {"error": "temporarily unavailable"}),
+            first_page,
+            make_response(403, {"error": "access denied"}),
+        ]
+
+        with self.assertRaises(VBaseAPIError) as context:
+            self.client.create_collection("Reports", "Test collection")
+
+        self.assertEqual(context.exception.status_code, 403)
+        methods = [call.args[0] for call in self.client.session.request.call_args_list]
+        self.assertEqual(methods, ["POST", "GET", "GET"])
+
+    def test_collection_pagination_must_advance(self):
+        first_page = make_response(200, [])
+        first_page.headers["Link"] = '</api/v1/collections?offset=0>; rel="next"'
+        self.client.session.request.side_effect = [
+            make_response(503, {"error": "temporarily unavailable"}),
+            first_page,
+        ]
+
+        with self.assertRaisesRegex(VBaseAPIError, "pagination offset did not advance"):
+            self.client.create_collection("Reports", "Test collection")
+
+        methods = [call.args[0] for call in self.client.session.request.call_args_list]
+        self.assertEqual(methods, ["POST", "GET"])
+
     def test_collection_retries_create_when_read_finds_no_match(self):
         self.client.session.request.side_effect = [
             make_response(503, {"error": "temporarily unavailable"}),

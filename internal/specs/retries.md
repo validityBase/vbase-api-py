@@ -38,7 +38,9 @@ preserving the API operation's state-change semantics.
 - `create_stamp(idempotent=False)` is sent once because the current API has no
   request identity that can distinguish a retry from a second intended stamp.
 - `create_collection` checks for a collection matching the requested name,
-  CID, description, and pin state before repeating a create request.
+  CID, description, and pin state before repeating a create request. It follows
+  the collection list's `Link: rel="next"` pagination until it finds a match or
+  reaches the last page. If the lookup fails, the client surfaces the failure.
 - `upload_stamped_file` is retry-safe because the server returns the existing
   file association for duplicate uploads.
 
