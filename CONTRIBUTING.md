@@ -37,11 +37,13 @@ The hooks run Black, isort, and file/YAML checks. To run the test suite:
 python -m unittest discover -s tests -v
 ```
 
-The current suite contains live file-integrity integration tests. Without the
-required API and AWS credentials they skip; a skipped run does not verify live
-behavior. See the [test environment guide](internal/specs/e2e-file-integrity.md)
-for the required environment variables and service setup. Never put credentials
-in issues, commits, or test output.
+The suite includes offline verification-response regression tests and live
+file-integrity integration tests. The offline tests need no credentials.
+Without the required API and AWS credentials the live tests skip; a skipped
+run does not verify live behavior. See the
+[test environment guide](internal/specs/e2e-file-integrity.md) for the required
+environment variables and service setup. Never put credentials in issues,
+commits, or test output.
 
 Check distribution packaging when changing package metadata:
 

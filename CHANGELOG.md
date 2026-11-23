@@ -10,6 +10,43 @@ for prior changes.
 
 ## [Unreleased]
 
+### Added
+
+- Add configurable Tenacity retries for transient API failures. See the
+  [retry configuration](README.md#retries) for operation-specific behavior.
+- Expose API error codes, `Retry-After`, and commitment receipts on
+  `VBaseAPIError` as keyword-only attributes without changing existing
+  exception construction. `Retry-After` is also preserved when the error body
+  is not a JSON object.
+
+### Fixed
+
+- Correct the `VBaseAPIClient`, `create_stamp`, and `upload_stamped_file`
+  docstrings and examples: call `get_collections`, check `file_object` before
+  reading it, state that `create_stamp` takes exactly one content source and
+  which error each invalid call raises, and show `data_cid` as `0x` plus a
+  file's SHA3-256 hex digest
+  ([#58](https://github.com/validityBase/vbase-api-py/pull/58)).
+
+## [0.2.0] - 2026-11-11
+
+### Changed
+
+- Require Python 3.11 or newer; Python 3.8–3.10 are no longer supported
+  ([#51](https://github.com/validityBase/vbase-api-py/pull/51)).
+
+## [0.1.5] - 2026-11-10
+
+### Deprecated
+
+- `VerificationResult.display_timezone` is retained for compatibility. Use the
+  timezone information in each receipt's `timestamp` instead.
+
+### Fixed
+
+- Accept stamp verification responses without `display_timezone`, returning
+  `None` for the legacy attribute while preserving values from older APIs.
+
 ## [0.1.4] - 2026-10-26
 
 ### Added

@@ -16,7 +16,7 @@ import requests
 from tenacity import (
     Retrying,
     retry_any,
-    retry_if_exception_type,
+    retry_if_exception,
     stop_any,
     stop_before_delay,
 )
@@ -36,11 +36,32 @@ MINIMUM_STAMP_RETRY_WINDOW_SECONDS = 10.0
 
 
 class VBaseAPIError(Exception):
-    """Base exception for vBase API errors."""
+    """
+    Base exception for vBase API errors.
 
-    def __init__(self, message: str, status_code: Optional[int] = None):
+    Attributes:
+        message: Human-readable error message.
+        status_code: HTTP status code, if the error came from an HTTP response.
+        error_code: Machine-readable error code from the response body, if any.
+        retry_after: Raw ``Retry-After`` response header value, if any.
+        commitment_receipt: Raw commitment receipt mapping from the response
+            body, if any.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        status_code: Optional[int] = None,
+        *,
+        error_code: Optional[str] = None,
+        retry_after: Optional[str] = None,
+        commitment_receipt: Optional[dict] = None,
+    ):
         self.message = message
         self.status_code = status_code
+        self.error_code = error_code
+        self.retry_after = retry_after
+        self.commitment_receipt = commitment_receipt
         super().__init__(self.message)
 
     def __str__(self):
@@ -48,15 +69,6 @@ class VBaseAPIError(Exception):
         if self.status_code:
             error_msg = f"[{self.status_code}] {error_msg}"
         return error_msg
-
-
-class _RetryableHTTPError(Exception):
-    """Internal exception used to let Tenacity retry transient responses."""
-
-    def __init__(self, message: str, status_code: int):
-        self.message = message
-        self.status_code = status_code
-        super().__init__(message)
 
 
 class VBaseAPIClient:
@@ -77,7 +89,7 @@ class VBaseAPIClient:
         .. code-block:: python
 
             client = VBaseAPIClient(api_key="your-bearer-token")
-            collections = client.list_collections()
+            collections = client.get_collections()
             stamp = client.create_stamp(data={"hello": "world"})
     """
 
@@ -113,30 +125,36 @@ class VBaseAPIClient:
         endpoint = endpoint.lstrip("/")
         return f"{self.base_url}/api/{self.API_VERSION}/{endpoint}"
 
-    @staticmethod
-    def _get_response_error(response: requests.Response) -> str:
-        """Extract a useful API error message from an HTTP response."""
-        try:
-            error_data = response.json()
-        except (ValueError, json.JSONDecodeError):
-            return response.reason or f"HTTP {response.status_code}"
-
-        if isinstance(error_data, dict):
-            return str(error_data.get("error") or response.reason or error_data)
-        return response.reason or str(error_data)
-
     def _handle_response(self, response: requests.Response) -> Any:
-        """Handle an API response and raise the public client exception."""
+        """Decode a response, preserving the public client error contract."""
         try:
             response.raise_for_status()
-        except requests.exceptions.HTTPError as exc:
-            raise VBaseAPIError(
-                self._get_response_error(response), response.status_code
-            ) from exc
-        try:
             return response.json()
-        except requests.exceptions.RequestException as exc:
-            raise VBaseAPIError(f"Request failed: {str(exc)}") from exc
+        except requests.exceptions.HTTPError as e:
+            retry_after = response.headers.get("Retry-After")
+            try:
+                error_data = response.json()
+            except (ValueError, json.JSONDecodeError) as exc:
+                raise VBaseAPIError(
+                    str(e), response.status_code, retry_after=retry_after
+                ) from exc
+            if not isinstance(error_data, dict):
+                raise VBaseAPIError(
+                    str(e), response.status_code, retry_after=retry_after
+                ) from e
+            error_code = error_data.get("error_code")
+            commitment_receipt = error_data.get("commitment_receipt")
+            raise VBaseAPIError(
+                error_data.get("error", str(e)),
+                response.status_code,
+                error_code=error_code if isinstance(error_code, str) else None,
+                retry_after=retry_after,
+                commitment_receipt=(
+                    commitment_receipt if isinstance(commitment_receipt, dict) else None
+                ),
+            ) from e
+        except requests.exceptions.RequestException as e:
+            raise VBaseAPIError(f"Request failed: {str(e)}") from e
 
     def _request_once(
         self, method: str, endpoint: str, **kwargs: Any
@@ -149,11 +167,10 @@ class VBaseAPIClient:
             **kwargs,
         )
         if response.status_code in self.retry_status_codes:
-            error = _RetryableHTTPError(
-                self._get_response_error(response), response.status_code
-            )
-            response.close()
-            raise error
+            try:
+                self._handle_response(response)
+            finally:
+                response.close()
         return response
 
     def _execute_with_retry(
@@ -171,7 +188,10 @@ class VBaseAPIClient:
             retrying = self.retrying.copy(
                 retry=retry_any(
                     self.retrying.retry,
-                    retry_if_exception_type(_RetryableHTTPError),
+                    retry_if_exception(
+                        lambda error: isinstance(error, VBaseAPIError)
+                        and error.status_code in self.retry_status_codes
+                    ),
                 ),
                 reraise=True,
                 retry_error_callback=None,
@@ -184,8 +204,6 @@ class VBaseAPIClient:
                     )
                 )
             return retrying(operation)
-        except _RetryableHTTPError as exc:
-            raise VBaseAPIError(exc.message, exc.status_code) from exc
         except requests.exceptions.RequestException as exc:
             raise VBaseAPIError(f"Request failed: {str(exc)}") from exc
 
@@ -398,7 +416,7 @@ class VBaseAPIClient:
         """
         Stamp a file, data, or CID.
 
-        At least one of 'file', 'data', or 'data_cid' must be provided.
+        Select exactly one content source: ``file``, nonempty ``data``, or ``data_cid``.
         If you want to add the stamp to a collection,
         one collection parameter (collection_cid or collection_name) should be specified.
 
@@ -406,7 +424,8 @@ class VBaseAPIClient:
             file: Binary file to be stamped (path or file-like object)
             data: Inline text or JSON data to be stamped (string or dict)
             file_name: Custom file name for data (only used when 'data' is provided)
-            data_cid: Existing CID to stamp
+            data_cid: CID to stamp: ``0x`` followed by 64 hexadecimal characters,
+                such as a file's SHA3-256 hash (see the example below)
             collection_cid: Optional CID of collection to group stamped object
             collection_name: Optional name of collection (case-insensitive)
             store_stamped_file: Whether to store the stamped file (default: True)
@@ -423,23 +442,30 @@ class VBaseAPIClient:
             StampCreatedResponse (201 status) or IdempotentStampResponse (200 status)
 
         Raises:
-            VBaseAPIError: If the request fails
-            ValueError: If invalid parameters are provided
+            VBaseAPIError: If the request fails or has more than one content source
+            ValueError: If no content source or both collection parameters are given
 
         Example:
             .. code-block:: python
+
+                import hashlib
 
                 # Stamp inline data
                 stamp = client.create_stamp(data={"hello": "world"})
                 print(f"Object CID: {stamp.commitment_receipt.object_cid}")
 
-                # Stamp a file
+                # Stamp a file. Check file_object before using it: idempotent (200)
+                # responses do not include it, and it may be None or have an empty
+                # file_name when no file was stored.
                 stamp = client.create_stamp(file="document.pdf", collection_name="Documents")
-                if stamp.file_object:
-                    print(f"File: {stamp.file_object.file_name}")
+                file_object = getattr(stamp, "file_object", None)
+                if file_object and file_object.file_name:
+                    print(f"File: {file_object.file_name}")
 
-                # Stamp an existing CID
-                stamp = client.create_stamp(data_cid="Qm...")
+                # Stamp a file's SHA3-256 CID. Only the CID is sent; the file stays local.
+                with open("dataset.csv", "rb") as f:
+                    cid = "0x" + hashlib.file_digest(f, "sha3_256").hexdigest()
+                stamp = client.create_stamp(data_cid=cid)
         """
         if not any([file, data, data_cid]):
             raise ValueError(
@@ -546,7 +572,8 @@ class VBaseAPIClient:
                     collection_name="My Collection",
                     file="stamped_document.pdf"
                 )
-                print(f"Uploaded: {result.file_object.file_name}")
+                if result.file_object:
+                    print(f"Uploaded: {result.file_object.file_name}")
         """
         form_data = {"collection_name": collection_name}
 
@@ -590,7 +617,8 @@ class VBaseAPIClient:
             filter_by_user: When true, only return results owned by the current user
 
         Returns:
-            VerificationResult with display timezone and stamp list
+            VerificationResult with stamp list. Its display_timezone attribute is
+            deprecated and may be None; use receipt timestamp timezone information.
 
         Raises:
             VBaseAPIError: If the request fails

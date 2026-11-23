@@ -12,7 +12,9 @@ preserving the API operation's state-change semantics.
   three.
 - Retry `requests` connection and timeout failures.
 - Retry HTTP `408`, `429`, `500`, `502`, `503`, and `504`.
-- Return the final failure as `VBaseAPIError`.
+- Return the final failure as `VBaseAPIError`. For HTTP failures, preserve
+  the server's error code, `Retry-After` header, and commitment receipt when
+  present.
 - Callers can supply a standard `tenacity.Retrying` controller. The
   `default_retrying()` factory returns a new controller with the default policy,
   and callers can use `Retrying.copy()` to override selected strategies.

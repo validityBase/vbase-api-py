@@ -3,6 +3,7 @@
 import json
 import tempfile
 import unittest
+from io import BytesIO
 from pathlib import Path
 from unittest.mock import Mock, call
 
@@ -60,6 +61,16 @@ def immediate_retrying(max_attempts=3):
         stop=stop_after_attempt(max_attempts),
         wait=wait_none(),
     )
+
+
+class NonSeekableStream(BytesIO):
+    """Simulate an upload stream that cannot be rewound."""
+
+    def seekable(self):
+        return False
+
+    def seek(self, *_args):
+        raise OSError("stream is not seekable")
 
 
 class DefaultRetryingTests(unittest.TestCase):
@@ -365,6 +376,49 @@ class VBaseAPIClientRetryTests(unittest.TestCase):
             [b"same bytes on every attempt", b"same bytes on every attempt"],
         )
 
+    def test_seekable_stream_replays_from_initial_offset_and_stays_open(self):
+        for method in ("create_stamp", "upload_stamped_file"):
+            with self.subTest(method=method), BytesIO(b"prefix:payload") as stream:
+                stream.seek(len(b"prefix:"))
+                uploaded_bodies = []
+
+                def send_request(_method, _url, **kwargs):
+                    uploaded_bodies.append(kwargs["files"]["file"].read())
+                    if len(uploaded_bodies) == 1:
+                        raise requests.exceptions.ConnectionError("connection reset")
+                    return make_response(
+                        201,
+                        {
+                            "commitment_receipt": receipt_payload(),
+                            "file_object": {
+                                "file_name": "payload.bin",
+                                "file_path": "stamped/payload.bin",
+                            },
+                        },
+                    )
+
+                self.client.session.request.side_effect = send_request
+                getattr(self.client, method)(collection_name="Reports", file=stream)
+
+                self.assertEqual(uploaded_bodies, [b"payload", b"payload"])
+                self.assertFalse(stream.closed)
+
+    def test_non_seekable_stream_is_sent_once_and_stays_open(self):
+        for method in ("create_stamp", "upload_stamped_file"):
+            with self.subTest(method=method), NonSeekableStream(b"payload") as stream:
+                self.client.session.request.reset_mock()
+
+                def send_request(_method, _url, **kwargs):
+                    self.assertEqual(kwargs["files"]["file"].read(), b"payload")
+                    raise requests.exceptions.ConnectionError("connection reset")
+
+                self.client.session.request.side_effect = send_request
+                with self.assertRaises(VBaseAPIError):
+                    getattr(self.client, method)(collection_name="Reports", file=stream)
+
+                self.client.session.request.assert_called_once()
+                self.assertFalse(stream.closed)
+
     def test_retry_can_be_disabled(self):
         client = VBaseAPIClient(
             api_key="test-token",
@@ -386,14 +440,25 @@ class VBaseAPIClientRetryTests(unittest.TestCase):
         self.assertEqual(client.session.request.call_count, 1)
 
     def test_retry_attempt_limit_is_respected(self):
-        self.client.session.request.return_value = make_response(
-            503, {"error": "temporarily unavailable"}
+        receipt = receipt_payload()
+        response = make_response(
+            503,
+            {
+                "error": "temporarily unavailable",
+                "error_code": "operation_guard_unavailable",
+                "commitment_receipt": receipt,
+            },
         )
+        response.headers["Retry-After"] = "5"
+        self.client.session.request.return_value = response
 
         with self.assertRaises(VBaseAPIError) as context:
             self.client.get_collections()
 
         self.assertEqual(context.exception.status_code, 503)
+        self.assertEqual(context.exception.error_code, "operation_guard_unavailable")
+        self.assertEqual(context.exception.retry_after, "5")
+        self.assertEqual(context.exception.commitment_receipt, receipt)
         self.assertEqual(self.client.session.request.call_count, 3)
 
 

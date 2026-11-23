@@ -1,0 +1,22 @@
+name: Source E2E
+
+on:
+  schedule:
+    - cron: '17 5 * * *'
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  source-e2e:
+    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]') }}
+    uses: ./.github/workflows/file-integrity-e2e.yml
+    with:
+      install-source: source
+    secrets: inherit
