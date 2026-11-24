@@ -34,6 +34,18 @@ class APIClientTests(unittest.TestCase):
         response.headers.update(headers or {})
         return response
 
+    @staticmethod
+    def collection_payload(index):
+        return {
+            "id": index,
+            "name": f"Collection {index}",
+            "cid": f"0x{index:064x}",
+            "is_pinned": False,
+            "is_public": False,
+            "created_at": "2026-10-26T00:00:00Z",
+            "description": "",
+        }
+
     def test_collection_request_and_response(self):
         payload = {
             "id": 1,
@@ -60,6 +72,101 @@ class APIClientTests(unittest.TestCase):
             },
             timeout=7,
         )
+
+    def test_get_collections_follows_relative_next_links_with_filters(self):
+        first_page = [self.collection_payload(index) for index in range(10000)]
+        second_page = [self.collection_payload(10000)]
+        with patch.object(
+            self.client.session,
+            "get",
+            side_effect=[
+                self.response(
+                    200,
+                    first_page,
+                    {
+                        "X-Total-Count": "10001",
+                        "Link": (
+                            "</api/v1/collections?limit=10000&offset=10000"
+                            '&user_address=0xabc&is_pinned=false>; rel="next"'
+                        ),
+                    },
+                ),
+                self.response(200, second_page, {"X-Total-Count": "10001"}),
+            ],
+        ) as get:
+            collections = self.client.get_collections(
+                user_address="0xabc", is_pinned=False
+            )
+
+        self.assertEqual(len(collections), 10001)
+        self.assertEqual(collections[-1].cid, second_page[0]["cid"])
+        self.assertEqual(
+            get.call_args_list[0].kwargs,
+            {
+                "params": {"user_address": "0xabc", "is_pinned": False},
+                "timeout": 7,
+            },
+        )
+        self.assertEqual(
+            get.call_args_list[1].args[0],
+            (
+                "https://example.invalid/api/v1/collections?limit=10000"
+                "&offset=10000&user_address=0xabc&is_pinned=false"
+            ),
+        )
+        self.assertEqual(get.call_args_list[1].kwargs, {"params": None, "timeout": 7})
+
+    def test_get_collections_propagates_later_page_error(self):
+        with patch.object(
+            self.client.session,
+            "get",
+            side_effect=[
+                self.response(
+                    200,
+                    [self.collection_payload(1)],
+                    {"Link": '</api/v1/collections?offset=1>; rel="next"'},
+                ),
+                self.response(503, {"error": "Indexer unavailable"}),
+            ],
+        ) as get:
+            with self.assertRaises(vbase_api.VBaseAPIError) as raised:
+                self.client.get_collections()
+
+        self.assertEqual(raised.exception.status_code, 503)
+        self.assertEqual(len(get.call_args_list), 2)
+
+    def test_get_collections_rejects_cross_origin_next_link(self):
+        with patch.object(
+            self.client.session,
+            "get",
+            return_value=self.response(
+                200,
+                [self.collection_payload(1)],
+                {"Link": '<https://example.com/collections?page=2>; rel="next"'},
+            ),
+        ) as get:
+            with self.assertRaises(vbase_api.VBaseAPIError) as raised:
+                self.client.get_collections()
+
+        self.assertIn("different origin", str(raised.exception))
+        get.assert_called_once()
+
+    def test_get_collections_rejects_pagination_link_cycle(self):
+        first_url = "https://example.invalid/api/v1/collections"
+        with patch.object(
+            self.client.session,
+            "get",
+            return_value=self.response(
+                200,
+                [self.collection_payload(1)],
+                {"Link": f'<{first_url}>; rel="next"'},
+            ),
+        ) as get:
+            with self.assertRaises(vbase_api.VBaseAPIError) as raised:
+                self.client.get_collections()
+
+        self.assertIn("cycle", str(raised.exception))
+        get.assert_called_once()
 
     def test_stamp_response_types(self):
         for status, expected in [

@@ -65,4 +65,7 @@ for collection in collections:
     print(f"{collection.name}: {collection.cid}")
 ```
 
-
+`get_collections()` follows collection pagination links and returns the complete
+list when the API data remains unchanged. Collection listings are not snapshots:
+concurrent stamping, collection changes, or indexing updates can repeat or omit
+entries even when the reported total does not change.
