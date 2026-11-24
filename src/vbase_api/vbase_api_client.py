@@ -26,6 +26,9 @@ class VBaseAPIError(Exception):
     """
     Base exception for vBase API errors.
 
+    RFC 9457 responses expose ``detail`` as ``message`` and ``code`` as
+    ``error_code``. Legacy JSON errors use ``error`` and ``error_code``.
+
     Attributes:
         message: Human-readable error message.
         status_code: HTTP status code, if the error came from an HTTP response.
@@ -118,10 +121,22 @@ class VBaseAPIClient:
                 raise VBaseAPIError(
                     str(e), response.status_code, retry_after=retry_after
                 ) from e
-            error_code = error_data.get('error_code')
+            media_type = (
+                response.headers.get("Content-Type", "")
+                .partition(";")[0]
+                .strip()
+                .lower()
+            )
+            if media_type == "application/problem+json":
+                error_code = error_data.get("code")
+                detail = error_data.get("detail")
+                message = detail if isinstance(detail, str) and detail else str(e)
+            else:
+                error_code = error_data.get("error_code")
+                message = error_data.get("error", str(e))
             commitment_receipt = error_data.get('commitment_receipt')
             raise VBaseAPIError(
-                error_data.get('error', str(e)),
+                message,
                 response.status_code,
                 error_code=error_code if isinstance(error_code, str) else None,
                 retry_after=retry_after,
