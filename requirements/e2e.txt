@@ -4,12 +4,12 @@
 #
 #    pip-compile --allow-unsafe --generate-hashes --no-annotate --output-file=requirements/e2e.txt --strip-extras requirements/e2e.in
 #
-boto3==1.44.7 \
-    --hash=sha256:15fac273416d37cd5e3f0c02b33fd8d7f27d3e64c5f64b911f8b953772302609 \
-    --hash=sha256:cc19922a2db90ac98f259b5290e08fcf7143a314eb6b2e430afec26a5d1f4e10
-botocore==1.44.7 \
-    --hash=sha256:3cbf1d9f50b5f1f95b715e570bc03b8c7c94b86777f96dd647321134f57290b2 \
-    --hash=sha256:56ec7cf3a7c0012c7e105c8f498c67077afa722df916dbdbe667b584fe7e5f99
+boto3==1.44.8 \
+    --hash=sha256:099caf21553bbbfef118904aa02fadb8776a534704cf00bede0ed9f29a4da88e \
+    --hash=sha256:32f646d28ea25820ec210cfa48e2409bf06a4a529c8b243013fd045716e99826
+botocore==1.44.10 \
+    --hash=sha256:6fc109eefd1b02899196499d798141be6df70ca257b399741adc9975569d41b6 \
+    --hash=sha256:d9c8602d24df40e366bbe80157c6f94155c91c367eaaabeceb26d47532f6baba
 certifi==2026.6.17 \
     --hash=sha256:024c88eeec92ca068db80f02b8b07c9cef7b9fe261d1d535abfd5abd6f6af432 \
     --hash=sha256:2227dcbaafe0d2f59279d1762ddddc37783ed4354594f194ffc31d20f41fc3db
