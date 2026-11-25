@@ -21,6 +21,10 @@ for prior changes.
 
 - Preserve RFC 9457 error messages and codes on `VBaseAPIError` while
   continuing to support legacy JSON error responses.
+- Follow collection pagination links in `VBaseAPIClient.get_collections()` so
+  callers do not silently receive only the API's first page. Later-page errors
+  now fail the call instead of returning a partial list, and unsafe cross-origin
+  or cyclic pagination links raise `VBaseAPIError`.
 - Correct the `VBaseAPIClient`, `create_stamp`, and `upload_stamped_file`
   docstrings and examples: call `get_collections`, check `file_object` before
   reading it, state that `create_stamp` takes exactly one content source and
