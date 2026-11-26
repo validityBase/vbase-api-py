@@ -21,6 +21,8 @@ for prior changes.
 
 ### Fixed
 
+- Preserve RFC 9457 error messages and codes on `VBaseAPIError` while
+  continuing to support legacy JSON error responses.
 - Correct the `VBaseAPIClient`, `create_stamp`, and `upload_stamped_file`
   docstrings and examples: call `get_collections`, check `file_object` before
   reading it, state that `create_stamp` takes exactly one content source and

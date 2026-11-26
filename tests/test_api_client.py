@@ -158,6 +158,47 @@ class APIClientTests(unittest.TestCase):
         self.assertEqual(raised.exception.status_code, 429)
         self.assertEqual(raised.exception.retry_after, "2")
 
+    def test_stamp_problem_details_preserves_public_error_fields(self):
+        response = self.response(
+            429,
+            {
+                "type": "https://example.test/problems/rate-limit-exceeded",
+                "title": "Rate Limit Exceeded",
+                "status": 429,
+                "detail": "Request rate limit exceeded.",
+                "code": "RATE_LIMIT_EXCEEDED",
+            },
+            {
+                "Content-Type": "application/problem+json; charset=utf-8",
+                "Retry-After": "8",
+            },
+        )
+        with patch.object(self.client.session, "request", return_value=response):
+            with self.assertRaises(vbase_api.VBaseAPIError) as raised:
+                self.client.create_stamp(data_cid="0xobject")
+
+        error = raised.exception
+        self.assertEqual(error.status_code, 429)
+        self.assertEqual(error.error_code, "RATE_LIMIT_EXCEEDED")
+        self.assertEqual(error.message, "Request rate limit exceeded.")
+        self.assertEqual(error.retry_after, "8")
+
+    def test_problem_details_ignores_invalid_field_types_and_uses_http_status(self):
+        response = self.response(
+            503,
+            {"status": 429, "code": 42, "detail": {"unexpected": "object"}},
+            {"Content-Type": "application/problem+json", "Retry-After": "10"},
+        )
+        with patch.object(self.client.session, "request", return_value=response):
+            with self.assertRaises(vbase_api.VBaseAPIError) as raised:
+                self.client.get_collections()
+
+        error = raised.exception
+        self.assertEqual(error.status_code, 503)
+        self.assertIsNone(error.error_code)
+        self.assertEqual(error.retry_after, "10")
+        self.assertIn("503 Server Error", error.message)
+
     def test_malformed_error_metadata_types_are_ignored(self):
         with patch.object(
             self.client.session,

@@ -1,0 +1,27 @@
+# Managed by validityBase/vbase-github-internal. Do not edit directly.
+# Apply the regenerate-locks label to a Dependabot Python PR to repair duplicate hashes.
+# Workflow inputs and permissions:
+# https://github.com/validityBase/vbase-github-actions/blob/main/internal/specs/reusable-workflows.md#regenerate-dependabot-locksyml
+name: Repair Dependabot Python locks
+
+on:
+  pull_request_target:
+    types: [labeled]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  regenerate:
+    if: github.event.label.name == 'regenerate-locks'
+    uses: validityBase/vbase-github-actions/.github/workflows/regenerate-dependabot-locks.yml@v2
+    permissions:
+      contents: write
+      pull-requests: read
+    with:
+      lock-files: "docs e2e tools"
+      allow-unsafe-lock-files: "e2e tools"
+      python-version: "3.12"
+      tooling-lock: "tools"
+      compile-profile: "standard"
