@@ -12,6 +12,8 @@ for prior changes.
 
 ### Added
 
+- Add configurable Tenacity retries for transient API failures. See the
+  [retry configuration](README.md#retries) for operation-specific behavior.
 - Expose API error codes, `Retry-After`, and commitment receipts on
   `VBaseAPIError` as keyword-only attributes without changing existing
   exception construction. `Retry-After` is also preserved when the error body

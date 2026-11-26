@@ -7,3 +7,10 @@ vBase REST API Client
    :show-inheritance:
    :inherited-members:
    :special-members: __init__
+
+Retry Configuration
+-------------------
+
+.. automodule:: vbase_api.retry
+   :members:
+   :undoc-members:

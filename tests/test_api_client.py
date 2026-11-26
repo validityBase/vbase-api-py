@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import requests
+from tenacity import stop_after_attempt
 
 import vbase_api
 
@@ -14,7 +15,10 @@ import vbase_api
 class APIClientTests(unittest.TestCase):
     def setUp(self):
         self.client = vbase_api.VBaseAPIClient(
-            api_key="test-only-key", base_url="https://example.invalid", timeout=7
+            api_key="test-only-key",
+            base_url="https://example.invalid",
+            timeout=7,
+            retrying=vbase_api.default_retrying().copy(stop=stop_after_attempt(1)),
         )
         self.addCleanup(self.client.close)
         self.receipt = {
@@ -45,20 +49,21 @@ class APIClientTests(unittest.TestCase):
             "description": "Example collection",
         }
         with patch.object(
-            self.client.session, "post", return_value=self.response(201, payload)
-        ) as post:
+            self.client.session, "request", return_value=self.response(201, payload)
+        ) as request:
             collection = self.client.create_collection("Example", "Example collection")
         self.assertEqual(collection.cid, "0xset")
         self.assertEqual(collection.name, "Example")
-        post.assert_called_once_with(
+        request.assert_called_once_with(
+            "POST",
             "https://example.invalid/api/v1/collections",
+            timeout=7,
             json={
                 "name": "Example",
                 "cid": None,
                 "description": "Example collection",
                 "is_pinned": True,
             },
-            timeout=7,
         )
 
     def test_stamp_response_types(self):
@@ -69,7 +74,7 @@ class APIClientTests(unittest.TestCase):
             with self.subTest(status=status):
                 with patch.object(
                     self.client.session,
-                    "post",
+                    "request",
                     return_value=self.response(
                         status, {"commitment_receipt": self.receipt}
                     ),
@@ -84,18 +89,18 @@ class APIClientTests(unittest.TestCase):
             path.write_bytes(b"example")
             with patch.object(
                 self.client.session,
-                "post",
+                "request",
                 return_value=self.response(201, {"commitment_receipt": self.receipt}),
-            ) as post:
+            ) as request:
                 result = self.client.upload_stamped_file("Example", path)
-            uploaded = post.call_args.kwargs["files"]["file"][1]
+            uploaded = request.call_args.kwargs["files"]["file"][1]
             self.assertTrue(uploaded.closed)
             self.assertEqual(result.commitment_receipt.object_cid, "0xobject")
 
     def test_api_error_preserves_status_and_message(self):
         with patch.object(
             self.client.session,
-            "get",
+            "request",
             return_value=self.response(403, {"error": "Access denied"}),
         ):
             with self.assertRaises(vbase_api.VBaseAPIError) as raised:
@@ -106,7 +111,7 @@ class APIClientTests(unittest.TestCase):
     def test_api_error_rejects_non_object_json_without_leaking_attribute_error(self):
         with patch.object(
             self.client.session,
-            "get",
+            "request",
             return_value=self.response(503, []),
         ):
             with self.assertRaises(vbase_api.VBaseAPIError) as raised:
@@ -123,15 +128,16 @@ class APIClientTests(unittest.TestCase):
         self.assertIsNone(error.commitment_receipt)
 
     def test_api_error_metadata_is_keyword_only(self):
-        with self.assertRaises(TypeError):
-            vbase_api.VBaseAPIError("Busy", 409, "stamp_in_progress")
+        self.assertRaises(
+            TypeError, vbase_api.VBaseAPIError, "Busy", 409, "stamp_in_progress"
+        )
 
     def test_retry_after_preserved_for_non_json_error_body(self):
         response = requests.Response()
         response.status_code = 503
         response._content = b"<html>Service Unavailable</html>"
         response.headers["Retry-After"] = "30"
-        with patch.object(self.client.session, "get", return_value=response):
+        with patch.object(self.client.session, "request", return_value=response):
             with self.assertRaises(vbase_api.VBaseAPIError) as raised:
                 self.client.get_collections()
 
@@ -143,7 +149,7 @@ class APIClientTests(unittest.TestCase):
     def test_retry_after_preserved_for_non_object_json_error_body(self):
         with patch.object(
             self.client.session,
-            "get",
+            "request",
             return_value=self.response(429, [], {"Retry-After": "2"}),
         ):
             with self.assertRaises(vbase_api.VBaseAPIError) as raised:
@@ -167,7 +173,7 @@ class APIClientTests(unittest.TestCase):
                 "Retry-After": "8",
             },
         )
-        with patch.object(self.client.session, "post", return_value=response):
+        with patch.object(self.client.session, "request", return_value=response):
             with self.assertRaises(vbase_api.VBaseAPIError) as raised:
                 self.client.create_stamp(data_cid="0xobject")
 
@@ -183,7 +189,7 @@ class APIClientTests(unittest.TestCase):
             {"status": 429, "code": 42, "detail": {"unexpected": "object"}},
             {"Content-Type": "application/problem+json", "Retry-After": "10"},
         )
-        with patch.object(self.client.session, "get", return_value=response):
+        with patch.object(self.client.session, "request", return_value=response):
             with self.assertRaises(vbase_api.VBaseAPIError) as raised:
                 self.client.get_collections()
 
@@ -196,7 +202,7 @@ class APIClientTests(unittest.TestCase):
     def test_malformed_error_metadata_types_are_ignored(self):
         with patch.object(
             self.client.session,
-            "get",
+            "request",
             return_value=self.response(
                 500, {"error": "Boom", "error_code": 5, "commitment_receipt": [1]}
             ),
@@ -211,7 +217,7 @@ class APIClientTests(unittest.TestCase):
     def test_stamp_in_progress_error_contract(self):
         with patch.object(
             self.client.session,
-            "post",
+            "request",
             return_value=self.response(
                 409,
                 {
@@ -231,7 +237,7 @@ class APIClientTests(unittest.TestCase):
     def test_operation_guard_unavailable_error_contract_with_receipt(self):
         with patch.object(
             self.client.session,
-            "post",
+            "request",
             return_value=self.response(
                 503,
                 {

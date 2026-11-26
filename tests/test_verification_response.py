@@ -30,19 +30,20 @@ class VerificationResponseTests(unittest.TestCase):
             {"display_timezone": None},
         ):
             with self.subTest(timezone_fields=timezone_fields):
-                response = Mock()
+                response = Mock(status_code=200)
                 response.json.return_value = {
                     "stamp_list": [self.receipt],
                     **timezone_fields,
                 }
                 with patch.object(
-                    self.client.session, "post", return_value=response
-                ) as post:
+                    self.client.session, "request", return_value=response
+                ) as request:
                     result = self.client.verify_stamps(
                         [self.receipt["object_cid"]], filter_by_user=True
                     )
 
-                post.assert_called_once_with(
+                request.assert_called_once_with(
+                    "POST",
                     "https://api.example.test/api/v1/stamps/verify",
                     json={"cids": [self.receipt["object_cid"]], "filter_by_user": True},
                     timeout=17,
@@ -59,9 +60,11 @@ class VerificationResponseTests(unittest.TestCase):
     def test_verify_stamps_accepts_empty_or_omitted_stamp_list_without_timezone(self):
         for payload in ({"stamp_list": []}, {}):
             with self.subTest(payload=payload):
-                response = Mock()
+                response = Mock(status_code=200)
                 response.json.return_value = payload
-                with patch.object(self.client.session, "post", return_value=response):
+                with patch.object(
+                    self.client.session, "request", return_value=response
+                ):
                     result = self.client.verify_stamps(
                         ["0xobject"], filter_by_user=True
                     )
@@ -72,9 +75,9 @@ class VerificationResponseTests(unittest.TestCase):
     def test_missing_required_receipt_field_still_raises(self):
         receipt = dict(self.receipt)
         del receipt["timestamp"]
-        response = Mock()
+        response = Mock(status_code=200)
         response.json.return_value = {"stamp_list": [receipt]}
-        with patch.object(self.client.session, "post", return_value=response):
+        with patch.object(self.client.session, "request", return_value=response):
             with self.assertRaisesRegex(KeyError, "timestamp"):
                 self.client.verify_stamps([receipt["object_cid"]], filter_by_user=True)
 
